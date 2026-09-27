@@ -78,21 +78,15 @@ ul, ol { padding: 0; list-style: none; }
   color: var(--ink);
 }
 
-/* 로고 이미지의 KEEM 글자 영역(위쪽 약 52%)만 잘라서 표시 */
+/* KEEM 글자 영역만 잘라낸 투명 배경 로고 (KEEM_mark.png) */
 .brand-mark {
-  position: relative;
   display: block;
   height: 38px;
-  aspect-ratio: 1352 / 400;
-  overflow: hidden;
 }
 
 .brand-mark img {
-  position: absolute;
-  left: 0;
-  top: -10%;
-  width: 100%;
-  height: auto;
+  height: 100%;
+  width: auto;
   max-width: none;
 }
 
@@ -112,6 +106,8 @@ ul, ol { padding: 0; list-style: none; }
 }
 
 .btn {
+  display: inline-block;
+  text-decoration: none;
   font: inherit;
   font-size: 14px;
   font-weight: 500;

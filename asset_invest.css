@@ -1,0 +1,109 @@
+:root{
+  --bg:#0f1420; --panel:#161d2e; --panel2:#1c2438; --border:#2a3348;
+  --text:#e8ecf5; --muted:#9aa5bd; --accent:#4f8cff; --accent2:#7c5cff;
+  --good:#3ddc97; --bad:#ff6b6b; --warn:#ffb84f;
+  --best:#3ddc97; --normal:#4f8cff; --worst:#ff6b6b;
+  --radius:14px;
+}
+@media (prefers-color-scheme: light){
+  :root{ --bg:#f5f7fb; --panel:#ffffff; --panel2:#f0f3fa; --border:#e2e7f2; --text:#1b2436; --muted:#5b6584; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",-apple-system,BlinkMacSystemFont,sans-serif;
+  line-height:1.55;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+header.top{padding:6px 0 20px}
+header.top h1{font-size:1.7rem;margin:0 0 6px;font-weight:800;letter-spacing:-0.02em}
+header.top p{color:var(--muted);margin:0;font-size:.95rem}
+.meta-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.chip{background:var(--panel2);border:1px solid var(--border);border-radius:999px;padding:6px 14px;font-size:.82rem;color:var(--muted)}
+.chip b{color:var(--text)}
+
+section{margin-top:34px}
+h2{font-size:1.2rem;margin:0 0 4px;font-weight:800}
+h2 .num{color:var(--accent);margin-right:6px}
+.sub{color:var(--muted);font-size:.88rem;margin:0 0 16px}
+
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.grid{display:grid;gap:16px}
+.grid.cols-3{grid-template-columns:repeat(3,1fr)}
+.grid.cols-4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:860px){ .grid.cols-3,.grid.cols-4{grid-template-columns:1fr} }
+
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+.kpi .label{color:var(--muted);font-size:.82rem;margin-bottom:6px}
+.kpi .value{font-size:1.5rem;font-weight:800;letter-spacing:-0.02em}
+.kpi .sub{margin-top:4px;font-size:.8rem;color:var(--muted)}
+
+.case-card{border-radius:var(--radius);padding:20px;border:1px solid var(--border);background:var(--panel)}
+.case-card.best{border-top:4px solid var(--best)}
+.case-card.normal{border-top:4px solid var(--normal)}
+.case-card.worst{border-top:4px solid var(--worst)}
+.case-card .tag{display:inline-block;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:999px;margin-bottom:10px}
+.case-card.best .tag{background:rgba(61,220,151,.15);color:var(--best)}
+.case-card.normal .tag{background:rgba(79,140,255,.15);color:var(--normal)}
+.case-card.worst .tag{background:rgba(255,107,107,.15);color:var(--worst)}
+.case-card h3{margin:0 0 12px;font-size:1.05rem}
+.case-card .final{font-size:1.6rem;font-weight:800;letter-spacing:-0.02em}
+.case-card .final small{font-size:.85rem;color:var(--muted);font-weight:600;margin-left:6px}
+.case-card .profit{margin-top:4px;font-size:.95rem;font-weight:700}
+.case-card .profit.pos{color:var(--good)}
+.case-card .profit.neg{color:var(--bad)}
+.case-card .basis{margin-top:14px;padding-top:14px;border-top:1px dashed var(--border);font-size:.82rem;color:var(--muted)}
+.case-card .basis ul{margin:6px 0 0;padding-left:18px}
+.case-card .basis li{margin-bottom:4px}
+
+.chart-box{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px;height:360px}
+
+table{width:100%;border-collapse:collapse;font-size:.86rem}
+th,td{padding:10px 10px;text-align:right;border-bottom:1px solid var(--border)}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.02em}
+tr:last-child td{border-bottom:none}
+td.pos{color:var(--good)}
+td.neg{color:var(--bad)}
+.tbl-wrap{overflow-x:auto}
+.small-note{color:var(--muted);font-size:.78rem;margin-top:10px}
+
+.source-list{font-size:.82rem;color:var(--muted)}
+.source-item{padding:12px 0;border-bottom:1px solid var(--border)}
+.source-item:last-child{border-bottom:none}
+.source-item .name{color:var(--text);font-weight:700;font-size:.9rem;margin-bottom:4px}
+.source-item .rates{display:flex;gap:14px;margin-bottom:6px;font-size:.82rem}
+.source-item .rates span b{font-weight:800}
+.r-normal b{color:var(--normal)} .r-best b{color:var(--best)} .r-worst b{color:var(--worst)}
+
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tab-btn{background:var(--panel2);border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:999px;cursor:pointer;font-size:.86rem;font-weight:600}
+.tab-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+.reco-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:860px){ .reco-grid{grid-template-columns:1fr} }
+.reco-callout{background:linear-gradient(135deg,rgba(79,140,255,.12),rgba(124,92,255,.12));border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:18px}
+.reco-callout .diff{font-weight:800;font-size:1.05rem}
+.diff.pos{color:var(--good)}
+
+.badge-cut{color:var(--bad);font-weight:700}
+.badge-add{color:var(--good);font-weight:700}
+
+footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:.78rem}
+footer ul{padding-left:18px}
+footer li{margin-bottom:4px}
+
+.legend{display:flex;gap:16px;font-size:.8rem;color:var(--muted);margin-bottom:10px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+/* ---------- 상단 로고 바 (index.html과 동일한 KEEM 로고, 클릭 시 index.html 이동) ---------- */
+.topbar{position:sticky;top:0;z-index:10;background:var(--panel);border-bottom:1px solid var(--border)}
+.topbar-inner{max-width:1180px;margin:0 auto;padding:10px 20px;display:flex;align-items:center}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
+.brand-mark{display:block;height:38px}
+.brand-mark img{display:block;height:100%;width:auto}
+.brand-sub{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#a0672f;padding-left:10px;border-left:1px solid var(--border)}
+@media (prefers-color-scheme: dark){ .brand-sub{color:#d19a5e} }
+@media (max-width:480px){ .brand-mark{height:32px} }

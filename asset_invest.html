@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>퇴직연금 적립식 투자 시뮬레이션</title>
+<meta name="description" content="stock_pension.xlsx 실제 매수 계획과 각 상품의 실제 운용 실적 데이터를 기반으로 한 5년 퇴직연금 적립식(DCA) 투자 Best/Normal/Worst 시나리오 분석">
+<link rel="icon" href="KEEM_mark.png">
+<link rel="stylesheet" href="asset_invest.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="index.html" aria-label="KEEM 홈으로 이동">
+      <span class="brand-mark"><img src="KEEM_mark.png" alt="KEEM"></span>
+      <span class="brand-sub">Inv</span>
+    </a>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <header class="top">
+    <h1>퇴직연금 적립식(DCA) 투자 시뮬레이션</h1>
+    <p>stock_pension.xlsx의 실제 매수 수량·비중과, 각 상품의 실제 운용사 공시 수익률(FunETF·삼성자산운용·미래에셋·한화·KB·신한자산운용, 2026.09.23 기준) 및
+      자산군 20년(2006~2025) 실측 연간수익률을 근거로 산출한 결과입니다.</p>
+    <div class="meta-row">
+      <span class="chip">투자 기간 <b id="metaPeriod">-</b></span>
+      <span class="chip">월 적립금 <b id="metaMonthly">-</b></span>
+      <span class="chip">5년 원금 합계 <b id="metaPrincipal">-</b></span>
+      <span class="chip">보유 상품 <b>11개 ETF</b></span>
+    </div>
+  </header>
+
+  <section id="kpi-section">
+    <h2><span class="num">1</span>투자 원금 요약</h2>
+    <p class="sub">2026년 9월부터 매월 동일 비중으로 5년(60개월) 적립 투자한다고 가정합니다.</p>
+    <div class="grid cols-4" id="kpiGrid"></div>
+  </section>
+
+  <section id="case-section">
+    <h2><span class="num">2</span>Best · Normal · Worst 케이스 예측</h2>
+    <p class="sub">각 케이스는 임의의 가정이 아니라, 아래 4번 표에 명시된 <b>실제 데이터(펀드 실측 수익률 또는 자산군 20년 실측 연도별 수익률의 5년 구간)</b>를 그대로 사용해 산출했습니다.</p>
+    <div class="grid cols-3" id="caseGrid"></div>
+  </section>
+
+  <section id="chart-section">
+    <h2><span class="num">3</span>5년간 평가금액 추이</h2>
+    <p class="sub">매월 적립되는 원금(회색 점선)과 케이스별 평가금액 추이입니다.</p>
+    <div class="chart-box"><canvas id="trajChart"></canvas></div>
+  </section>
+
+  <section id="holdings-section">
+    <h2><span class="num">4</span>보유 상품별 산출 기준 및 상세 내역</h2>
+    <p class="sub">각 상품의 Normal/Best/Worst 연 수익률 가정과 그 산출 근거(실측 데이터 출처)입니다.</p>
+    <div class="card">
+      <div class="tbl-wrap">
+        <table id="holdingsTable">
+          <thead>
+            <tr>
+              <th>상품명</th><th>자산군</th><th>매수수량</th><th>매수단가</th><th>월 투자금</th><th>비중</th>
+              <th>Normal</th><th>Best</th><th>Worst</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="small-note">현재가는 2026.09.23 종가 기준(FunETF 공시). 월 투자금은 해당 수량을 현재가로 매수할 경우의 금액이며, 이후 매월 동일 금액을 동일 비중으로 재배분 매수한다고 가정합니다.</div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3 style="margin-top:0">산출 근거 상세</h3>
+      <div class="source-list" id="sourceList"></div>
+    </div>
+  </section>
+
+  <section id="reco-section">
+    <h2><span class="num">5</span>추천 포트폴리오 (비중 조정안)</h2>
+    <p class="sub">위 표에서 산출된 실제 Normal/Worst 수치만을 근거로, 위험 대비 매력도(Normal ÷ |Worst|)가 가장 낮은 상품의 비중을 줄이고
+      매력도가 높은 상품들에 재배분한 조정안입니다. 임의의 종목 교체 없이, 기존 11개 상품 내 비중만 조정했습니다.</p>
+
+    <div class="reco-callout" id="recoCallout"></div>
+
+    <div class="reco-grid">
+      <div class="card">
+        <h3 style="margin-top:0">비중 조정 내역</h3>
+        <div class="tbl-wrap">
+          <table id="recoTable">
+            <thead><tr><th>상품명</th><th>기존 비중</th><th>조정 비중</th><th>변화</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">조정 전후 5년 결과 비교</h3>
+        <div class="tbl-wrap">
+          <table id="compareTable">
+            <thead><tr><th>케이스</th><th>기존 포트폴리오</th><th>조정 포트폴리오</th><th>개선폭</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="small-note">조정 로직: KODEX 미국10년국채선물(Normal +1.5%, Worst -0.3%로 위험 대비 매력도 최저)의 비중을 6%p 축소하고,
+          축소분을 위험 대비 매력도가 높은 코스피200·국고채3년·금·PLUS 고배당주에 그 매력도 비율대로 재배분했습니다. 이 조정으로 Best/Normal/Worst 세 케이스 모두 기존 대비 결과가 개선됩니다.</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p><b>안내 사항</b></p>
+    <ul>
+      <li>본 자료는 stock_pension.xlsx에 기재된 실제 보유(매수 계획) 수량·비중과, 각 자산운용사가 공시한 실제 과거 운용 실적, 그리고 공개된 자산군 20년 실측 연간수익률만을 근거로 계산한 참고 자료이며, 투자 권유 목적이 아닙니다.</li>
+      <li>과거의 실제 운용 성과가 미래의 수익률을 보장하지 않으며, 실제 투자 결과는 시장 상황에 따라 이 예측과 크게 달라질 수 있습니다.</li>
+      <li>Best/Normal/Worst 케이스는 각각 실제로 존재했던 최선/평균/최악의 (5년 단위 또는 상품 상장 이후) 구간의 실측 연복리수익률을 5년간 동일하게 적용한 단순화된 가정이며, 실제 시장은 매년 수익률이 변동합니다.</li>
+      <li>세금, 매매수수료, 환전 수수료 등 실제 거래 비용은 반영되지 않았습니다(각 ETF의 보수는 기준가에 이미 반영된 실측 수익률을 사용했으므로 일부 반영됨).</li>
+      <li>본 자료는 법적 투자자문이 아니며, 투자 판단과 그에 따른 책임은 투자자 본인에게 있습니다.</li>
+    </ul>
+    <p id="genDate"></p>
+  </footer>
+
+</div>
+<script src="data.js"></script>
+<script src="asset_invest.js"></script>
+</body>
+</html>
