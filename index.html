@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KEEM Inv - 투자 기록 노트</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="KEEM_home.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html" aria-label="KEEM 홈">
+        <span class="brand-mark"><img src="KEEM_home.png" alt="KEEM"></span>
+        <span class="brand-sub">Inv</span>
+      </a>
+      <nav class="actions" aria-label="주요 메뉴">
+        <button type="button" class="btn btn-ghost" data-page="trade">거래입력</button>
+        <button type="button" class="btn btn-solid" data-page="analysis">투자분석</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- 1. 소개 -->
+    <section class="hero">
+      <div class="hero-text">
+        <p class="eyebrow">KEEM Investment Log</p>
+        <h1>투자를 나누고,<br>변화를 기록합니다</h1>
+        <p class="lead">투자내용을 공유하고 어떻게 변화하는지를 기록하기 위한 페이지입니다.</p>
+        <p class="hero-note">아래 내용은 화면 구성을 확인하기 위한 시안이며, 표시된 종목과 금액은 모두 예시입니다.</p>
+      </div>
+      <div class="hero-logo">
+        <img src="KEEM_home.png" alt="KEEM 로고. 하단에 Inv, Trav, IT 세 영역이 표시되어 있습니다.">
+      </div>
+    </section>
+
+    <!-- 2. 포트폴리오 현황 -->
+    <section class="block" aria-labelledby="h-portfolio">
+      <div class="block-head">
+        <h2 id="h-portfolio">포트폴리오 현황</h2>
+        <span class="tag">예시 데이터</span>
+      </div>
+
+      <div class="portfolio">
+        <div class="summary">
+          <p class="label">평가금액</p>
+          <p class="total num" id="total-value">-</p>
+          <p class="delta num" id="total-delta">-</p>
+          <div class="spark" id="spark" role="img" aria-label="최근 6개월 평가금액 추이"></div>
+          <p class="spark-cap">최근 6개월 평가금액</p>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">종목</th>
+                <th scope="col" class="r">수량</th>
+                <th scope="col" class="r">평균단가</th>
+                <th scope="col" class="r">현재가</th>
+                <th scope="col" class="r">수익률</th>
+              </tr>
+            </thead>
+            <tbody id="holdings"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 변화 기록 -->
+    <section class="block" aria-labelledby="h-log">
+      <div class="block-head">
+        <h2 id="h-log">변화 기록</h2>
+        <span class="tag">예시 데이터</span>
+      </div>
+      <ol class="timeline" id="timeline"></ol>
+    </section>
+
+    <!-- 4. 공유 노트 -->
+    <section class="block" aria-labelledby="h-notes">
+      <div class="block-head">
+        <h2 id="h-notes">공유 노트</h2>
+        <span class="tag">예시 데이터</span>
+      </div>
+      <div class="notes" id="notes"></div>
+    </section>
+
+    <!-- 5. 추가 예정 -->
+    <section class="block" aria-labelledby="h-next">
+      <div class="block-head">
+        <h2 id="h-next">추가 예정 기능</h2>
+      </div>
+      <ul class="roadmap" id="roadmap"></ul>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <p>KEEM Inv 시안 · 투자 판단에 따른 결과는 본인에게 있습니다.</p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
