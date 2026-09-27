@@ -1,0 +1,1052 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KEEM Inv - 주식 기초</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="KEEM_mark.png">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    @property --p {
+      syntax: "<number>";
+      inherits: false;
+      initial-value: 0;
+    }
+
+    :root {
+      --green: #2f8a5b;
+      --bank: #5b6b7a;
+    }
+
+    /* ---------- 슬라이드 틀 ---------- */
+    .deck {
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 24px var(--gutter) 100px;
+    }
+
+    .progress {
+      height: 4px;
+      background: var(--line);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--bronze);
+      transition: width 0.4s ease;
+    }
+
+    .slide {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: clamp(20px, 4vw, 44px);
+      min-height: calc(100vh - 230px);
+    }
+    .slide.active {
+      display: flex;
+      flex-direction: column;
+      animation: slide-in 0.5s ease both;
+    }
+    .slide.active.back { animation-name: slide-in-back; }
+
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateX(40px); }
+      to   { opacity: 1; transform: none; }
+    }
+    @keyframes slide-in-back {
+      from { opacity: 0; transform: translateX(-40px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .kicker {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      color: var(--bronze);
+      margin-bottom: 10px;
+    }
+
+    .slide h2 {
+      font-size: clamp(22px, 3.4vw, 32px);
+      line-height: 1.3;
+      margin-bottom: 10px;
+      text-wrap: balance;
+    }
+
+    .intro {
+      color: var(--ink-soft);
+      font-size: 16px;
+      max-width: 46em;
+      margin-bottom: 28px;
+    }
+
+    .slide-body { flex: 1 0 auto; }
+
+    /* 슬라이드가 열릴 때 순서대로 나타나는 요소 */
+    .rv {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      transition-delay: calc(var(--d, 0) * 0.18s + 0.15s);
+    }
+    .slide.active .rv { opacity: 1; transform: none; }
+
+    /* ---------- 하단 조작 바 ---------- */
+    .controls {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 10;
+      background: rgba(248, 249, 251, 0.95);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid var(--line);
+    }
+    .controls-inner {
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 10px var(--gutter);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .dots { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .dot {
+      width: 10px;
+      height: 10px;
+      padding: 0;
+      border-radius: 50%;
+      border: 0;
+      background: var(--line);
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.2s;
+    }
+    .dot.on { background: var(--bronze); transform: scale(1.3); }
+    .counter { font-family: var(--font-num); font-size: 13px; color: var(--ink-soft); min-width: 48px; text-align: center; }
+    .btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+
+    /* ---------- 공통 카드 ---------- */
+    .cols { display: grid; gap: 16px; }
+    .cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .box {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 18px;
+    }
+    .box h3 { font-size: 16px; margin-bottom: 8px; color: var(--steel-deep); }
+    .box p, .box li { font-size: 14px; color: var(--ink-soft); }
+    .box li + li { margin-top: 6px; }
+
+    .pro h3 { color: var(--green); }
+    .con h3 { color: var(--up); }
+    .pro { border-top: 3px solid var(--green); }
+    .con { border-top: 3px solid var(--up); }
+    .pro li::before { content: "＋ "; color: var(--green); font-weight: 700; }
+    .con li::before { content: "－ "; color: var(--up); font-weight: 700; }
+
+    .point {
+      margin-top: 22px;
+      padding: 14px 18px;
+      background: var(--bronze-soft);
+      border-left: 4px solid var(--bronze);
+      border-radius: 4px;
+      font-size: 15px;
+    }
+
+    .big-num {
+      font-family: var(--font-num);
+      font-weight: 500;
+      color: var(--steel-deep);
+    }
+
+    /* ---------- 용어 표시와 하단 용어 설명 ---------- */
+    .t { font-weight: 700; color: var(--steel-deep); }
+    .t sup {
+      font-family: var(--font-num);
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--bronze);
+      margin-left: 1px;
+    }
+    .glossary {
+      margin-top: 32px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--line);
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 28px;
+    }
+    .glossary li { display: flex; gap: 6px; }
+    .glossary .n { font-family: var(--font-num); color: var(--bronze); flex: 0 0 auto; }
+    .glossary b { color: var(--ink); font-weight: 500; }
+
+    /* ---------- 1. 표지 ---------- */
+    .cover { justify-content: center; }
+    .cover h1 { margin-bottom: 16px; }
+    .vs {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 16px;
+      align-items: stretch;
+      margin: 8px 0 28px;
+    }
+    .vs .mid { align-self: center; font-weight: 700; color: var(--ink-soft); }
+    .vs .box { text-align: center; }
+    .vs .box h3 { font-size: 18px; }
+    .agenda { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+    .agenda button {
+      font: inherit;
+      text-align: left;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .agenda button:hover { border-color: var(--bronze); transform: translateY(-2px); }
+    .agenda button span { display: block; font-family: var(--font-num); font-size: 12px; color: var(--bronze); }
+
+    /* ---------- 2. 회사 설립 ---------- */
+    .steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; position: relative; }
+    .step { position: relative; text-align: center; }
+    .step .ico {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 12px;
+      border-radius: 50%;
+      background: var(--steel-deep);
+      display: grid;
+      place-items: center;
+      color: #fff;
+    }
+    .step .ico svg { width: 30px; height: 30px; }
+    .step .no { font-family: var(--font-num); font-size: 12px; color: var(--bronze); }
+    .step h3 { font-size: 16px; margin: 2px 0 6px; }
+    .step p { font-size: 13.5px; color: var(--ink-soft); }
+    .step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 32px;
+      left: calc(50% + 40px);
+      width: calc(100% - 66px);
+      height: 2px;
+      background: var(--line);
+    }
+
+    .own-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 24px; align-items: center; margin-top: 30px; }
+    .grid100 { display: grid; grid-template-columns: repeat(20, 1fr); gap: 3px; }
+    .grid100 i {
+      aspect-ratio: 1;
+      border-radius: 2px;
+      background: var(--line);
+      transition: background-color 0.3s, opacity 0.4s, transform 0.4s;
+    }
+    .grid100 i.a { background: var(--steel); }
+    .grid100 i.b { background: var(--bronze); }
+
+    /* ---------- 3. 대출 vs 투자 ---------- */
+    .toggle { display: inline-flex; border: 1px solid var(--steel); border-radius: 4px; overflow: hidden; margin-bottom: 14px; }
+    .toggle button {
+      font: inherit;
+      font-size: 14px;
+      padding: 7px 16px;
+      border: 0;
+      background: transparent;
+      color: var(--steel);
+      cursor: pointer;
+    }
+    .toggle button.on { background: var(--steel-deep); color: #fff; }
+
+    .bs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; height: 190px; }
+    .bs-col { display: flex; flex-direction: column; gap: 4px; }
+    .bs-caps { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .bs-cap { font-size: 12px; color: var(--ink-soft); text-align: center; margin-top: 6px; }
+    .bs-bar {
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+      border-radius: 4px;
+      overflow: hidden;
+      transition: flex-grow 0.6s ease;
+      flex-basis: 0;
+      min-height: 0;
+    }
+    .bs-asset { flex: 1; background: var(--steel); }
+    .bs-debt { background: var(--bank); }
+    .bs-eq { background: var(--bronze); }
+
+    .cmp { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; border: 1px solid var(--line); border-radius: 6px; }
+    .cmp th, .cmp td { white-space: normal; padding: 11px 14px; vertical-align: top; }
+    .cmp thead th { font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0; }
+    .cmp thead th:nth-child(2) { background: var(--bank); }
+    .cmp thead th:nth-child(3) { background: var(--bronze); }
+    .cmp thead th:first-child { background: var(--steel-deep); }
+    .cmp tbody th { font-size: 13px; color: var(--ink); font-weight: 700; width: 22%; }
+    .cmp td { color: var(--ink-soft); }
+    .cmp tbody tr { opacity: 0; transform: translateX(-12px); transition: opacity 0.4s, transform 0.4s; }
+    .slide.active .cmp tbody tr { opacity: 1; transform: none; }
+    .cmp tbody tr:nth-child(1) { transition-delay: 0.3s; }
+    .cmp tbody tr:nth-child(2) { transition-delay: 0.45s; }
+    .cmp tbody tr:nth-child(3) { transition-delay: 0.6s; }
+    .cmp tbody tr:nth-child(4) { transition-delay: 0.75s; }
+    .cmp tbody tr:nth-child(5) { transition-delay: 0.9s; }
+    .cmp tbody tr:nth-child(6) { transition-delay: 1.05s; }
+
+    .loan-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 24px; align-items: start; }
+
+    /* ---------- 4. 주식 발행 / 지분 희석 ---------- */
+    .dilute { display: grid; grid-template-columns: auto auto auto; gap: 18px; align-items: center; justify-content: center; margin-bottom: 26px; }
+    .donut {
+      --p: 0;
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: conic-gradient(var(--steel) calc(var(--p) * 1%), var(--bronze) 0);
+      display: grid;
+      place-items: center;
+      transition: --p 1.2s ease;
+    }
+    .donut::before {
+      content: "";
+      grid-area: 1 / 1;
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: var(--surface);
+    }
+    .donut b {
+      grid-area: 1 / 1;
+      position: relative;
+      font-family: var(--font-num);
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--steel-deep);
+    }
+    .donut-cap { text-align: center; font-size: 13px; color: var(--ink-soft); margin-top: 8px; }
+    .arrow { font-size: 26px; color: var(--ink-soft); }
+    .legend { display: flex; gap: 14px; justify-content: center; font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+    /* ---------- 5. 주주가치 제고 ---------- */
+    .flow { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; margin-bottom: 24px; }
+    .flow-src {
+      background: var(--steel-deep);
+      color: #fff;
+      border-radius: 6px;
+      padding: 16px 20px;
+      text-align: center;
+      font-weight: 700;
+    }
+    .flow-src small { display: block; font-weight: 400; font-size: 12px; color: #9fb0bf; }
+    .flow-src .t { color: #fff; font-weight: 400; }
+    .flow-out { display: grid; gap: 8px; }
+    .flow-line { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+    .flow-line .bar {
+      height: 26px;
+      border-radius: 3px;
+      width: 0;
+      transition: width 0.9s ease;
+      flex: 0 0 auto;
+    }
+    .slide.active .flow-line .bar { width: var(--w); }
+    .flow-line:nth-child(2) .bar { transition-delay: 0.2s; }
+    .flow-line:nth-child(3) .bar { transition-delay: 0.4s; }
+
+    .ways .box { position: relative; padding-top: 30px; }
+    .ways .box .no {
+      position: absolute;
+      top: -14px;
+      left: 16px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--bronze);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-family: var(--font-num);
+      font-size: 13px;
+    }
+    .ways .box.hl { border-color: var(--bronze); background: var(--bronze-soft); }
+
+    /* ---------- 6. 배당 ---------- */
+    .divflow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: stretch; margin-bottom: 26px; }
+    .df {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 16px;
+      text-align: center;
+      position: relative;
+    }
+    .df:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -12px;
+      top: 50%;
+      transform: translate(50%, -50%);
+      color: var(--bronze);
+      font-weight: 700;
+      z-index: 1;
+    }
+    .df .lb { font-size: 12.5px; color: var(--ink-soft); }
+    .df .big-num { font-size: 22px; display: block; margin: 4px 0; }
+    .df .sm { font-size: 12px; color: var(--ink-soft); }
+    .df.me { background: var(--steel-deep); border-color: var(--steel-deep); }
+    .df.me .lb, .df.me .sm { color: #9fb0bf; }
+    .df.me .big-num { color: #fff; }
+    .split { display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 8px; background: var(--line); }
+    .split span { width: 0; transition: width 1s ease 0.6s; }
+    .slide.active .split span { width: var(--w); }
+
+    /* ---------- 7. 자사주 소각 ---------- */
+    .burn-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: center; margin-bottom: 26px; }
+    .grid-burn { grid-template-columns: repeat(10, 1fr); gap: 4px; max-width: 320px; }
+    .grid-burn i.me { background: var(--up); }
+    .grid-burn i.buy { background: var(--bronze); }
+    .grid-burn i.gone { opacity: 0; transform: scale(0.3); }
+    .phase { font-size: 14px; font-weight: 700; color: var(--steel-deep); min-height: 1.6em; margin-bottom: 10px; }
+    .stats { display: grid; gap: 10px; }
+    .stat { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 8px; font-size: 14px; color: var(--ink-soft); }
+    .stat .big-num { font-size: 20px; }
+    .stat .big-num.upv { color: var(--up); }
+
+    /* ---------- 8. 비교 ---------- */
+    .cmp2 thead th:nth-child(2) { background: var(--green); }
+    .cmp2 thead th:nth-child(3) { background: var(--bronze); }
+    .takeaway { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 22px; }
+    .takeaway .box { border-left: 4px solid var(--steel-deep); }
+
+    /* ---------- 반응형 ---------- */
+    @media (max-width: 860px) {
+      .cols-3, .cols-4, .takeaway { grid-template-columns: 1fr; }
+      .cols-2, .own-row, .loan-row, .burn-row { grid-template-columns: 1fr; }
+      .agenda { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 24px; }
+      .step::after { display: none; }
+      .divflow { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 20px; }
+      .df:nth-child(2)::after { display: none; }
+      .glossary { grid-template-columns: 1fr; }
+      .slide { min-height: 0; }
+    }
+    @media (max-width: 480px) {
+      .vs { grid-template-columns: 1fr; }
+      .agenda { grid-template-columns: 1fr; }
+      .dilute { grid-template-columns: 1fr; }
+      .dilute .arrow { transform: rotate(90deg); text-align: center; }
+      .flow { grid-template-columns: 1fr; }
+      .divflow { grid-template-columns: 1fr; }
+      .df::after { display: none; }
+      .counter { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .slide.active { animation: none; }
+      .rv, .cmp tbody tr, .flow-line .bar, .split span, .donut, .bs-bar, .grid100 i { transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html" aria-label="KEEM 홈으로 이동">
+        <span class="brand-mark"><img src="KEEM_mark.png" alt="KEEM"></span>
+        <span class="brand-sub">Inv</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="deck">
+    <div class="progress" aria-hidden="true"><span id="bar"></span></div>
+
+    <!-- 1. 표지 -->
+    <section class="slide cover" aria-label="표지">
+      <div class="slide-body">
+        <p class="kicker rv">주식 기초 · 대학생을 위한 첫걸음</p>
+        <h1 class="rv" style="--d:1">예금 다음 단계,<br>주식은 어떻게 돌아갈까?</h1>
+        <p class="intro rv" style="--d:2">회사가 어떻게 만들어지고, 돈을 어떻게 모으고, 번 돈을 주주에게 어떻게 돌려주는지 차례대로 살펴봅니다.</p>
+
+        <div class="vs rv" style="--d:3">
+          <div class="box">
+            <h3>예금·적금</h3>
+            <p>은행에 돈을 <b>빌려주는</b> 것.<br>약속한 이자를 받습니다.</p>
+          </div>
+          <div class="mid">vs</div>
+          <div class="box">
+            <h3>주식</h3>
+            <p>회사의 <b>주인 일부</b>가 되는 것.<br>회사가 잘되면 함께 이익을 나눕니다.</p>
+          </div>
+        </div>
+
+        <div class="agenda rv" style="--d:4">
+          <button type="button" data-go="1"><span>01</span>회사 설립</button>
+          <button type="button" data-go="2"><span>02</span>대출금 vs 투자금</button>
+          <button type="button" data-go="3"><span>03</span>주식을 발행하는 이유</button>
+          <button type="button" data-go="4"><span>04</span>주주가치 제고 방안</button>
+          <button type="button" data-go="5"><span>05</span>배당금과 자사주 소각</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. 회사 설립 -->
+    <section class="slide" aria-label="회사 설립" data-anim="own">
+      <div class="slide-body">
+        <p class="kicker">01 · 회사 설립</p>
+        <h2>회사는 이렇게 태어납니다</h2>
+        <p class="intro">대학생 A가 3,000만 원으로 밀키트 회사를 차린다고 해 볼게요.</p>
+
+        <div class="steps">
+          <div class="step rv" style="--d:1">
+            <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></div>
+            <p class="no">STEP 1</p>
+            <h3>사업 아이디어</h3>
+            <p>무엇을 팔지, 어떻게 돈을 벌지 계획을 세웁니다.</p>
+          </div>
+          <div class="step rv" style="--d:2">
+            <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg></div>
+            <p class="no">STEP 2</p>
+            <h3>밑천 모으기</h3>
+            <p>A가 자기 돈 3,000만 원을 회사의 <span class="t" data-t="capital">자본금</span>으로 넣습니다.</p>
+          </div>
+          <div class="step rv" style="--d:3">
+            <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 10h.01M15 10h.01"/></svg></div>
+            <p class="no">STEP 3</p>
+            <h3>회사 등록</h3>
+            <p>나라에 등록하면 회사가 A와는 별개의 <span class="t" data-t="corp">법인</span>이 됩니다.</p>
+          </div>
+          <div class="step rv" style="--d:4">
+            <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/><circle cx="16.5" cy="15.5" r="2"/></svg></div>
+            <p class="no">STEP 4</p>
+            <h3>주식 발행</h3>
+            <p>1주 <span class="t" data-t="par">액면가</span> 1만 원으로 3,000주를 만들어 A가 모두 갖습니다.</p>
+          </div>
+        </div>
+
+        <div class="own-row">
+          <div class="rv" style="--d:5">
+            <p class="phase" id="own-phase">주식 = 회사를 잘게 나눈 소유권 조각</p>
+            <div class="grid100" id="own-grid" aria-hidden="true"></div>
+            <div class="legend"><span><i style="background:var(--steel)"></i>A의 주식</span></div>
+          </div>
+          <div class="box rv" style="--d:6">
+            <h3>그래서 A는 이 회사의 100% <span class="t" data-t="holder">주주</span>입니다</h3>
+            <p>주식을 가진 사람이 곧 회사의 주인입니다. 주식을 많이 가질수록 회사에서 차지하는 몫과 발언권이 커집니다.</p>
+          </div>
+        </div>
+      </div>
+      <ul class="glossary"></ul>
+    </section>
+
+    <!-- 3. 대출 vs 투자 -->
+    <section class="slide" aria-label="은행 대출금과 투자금의 차이">
+      <div class="slide-body">
+        <p class="kicker">02 · 대출금 vs 투자금</p>
+        <h2>회사가 2,000만 원이 더 필요하다면?</h2>
+        <p class="intro">장사가 잘돼서 공장을 넓히려고 합니다. 돈을 구하는 방법은 크게 두 가지입니다.</p>
+
+        <div class="loan-row">
+          <div class="rv" style="--d:1">
+            <div class="toggle" role="group" aria-label="자금 조달 방법 선택">
+              <button type="button" class="on" data-bs="loan">A. 은행 대출</button>
+              <button type="button" data-bs="invest">B. 투자 받기</button>
+            </div>
+            <div class="bs">
+              <div class="bs-col">
+                <div class="bs-bar bs-asset">회사 재산<br>5,000만 원</div>
+              </div>
+              <div class="bs-col">
+                <div class="bs-bar bs-debt" id="bs-debt" style="flex-grow:2">빌린 돈 2,000만 원</div>
+                <div class="bs-bar bs-eq" id="bs-eq" style="flex-grow:3">주주의 돈 3,000만 원</div>
+              </div>
+            </div>
+            <div class="bs-caps">
+              <p class="bs-cap"><span class="t" data-t="asset">자산</span></p>
+              <p class="bs-cap"><span class="t" data-t="debt">부채</span> + <span class="t" data-t="equity">자기자본</span></p>
+            </div>
+            <p class="bs-cap" id="bs-note" style="margin-top:0">대출을 받으면 재산은 늘지만, 갚아야 할 빚도 함께 늘어납니다.</p>
+          </div>
+
+          <table class="cmp rv" style="--d:2">
+            <thead>
+              <tr><th scope="col">구분</th><th scope="col">A. 은행 대출금</th><th scope="col">B. 투자자의 투자금</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">갚아야 하나요?</th><td>네. 정해진 날까지 원금을 갚아야 합니다.</td><td>아니요. 갚을 의무가 없습니다.</td></tr>
+              <tr><th scope="row">돈을 준 대가</th><td><span class="t" data-t="interest">이자</span>를 꼬박꼬박 냅니다. (예: 연 5%면 매년 100만 원)</td><td>회사의 주식을 줍니다. 이익이 나면 나눠 주고, 회사 가치가 오르면 함께 부자가 됩니다.</td></tr>
+              <tr><th scope="row">회사가 망하면?</th><td>은행이 남은 재산에서 먼저 돌려받습니다.</td><td>빚을 다 갚고 남은 게 있어야 돌려받습니다. 한 푼도 못 받을 수 있습니다.</td></tr>
+              <tr><th scope="row">경영 참여</th><td>보통 참여하지 않습니다.</td><td><span class="t" data-t="vote">의결권</span>으로 중요한 결정에 투표합니다.</td></tr>
+              <tr><th scope="row">돈을 준 사람은</th><td><span class="t" data-t="creditor">채권자</span> (빌려준 사람)</td><td>주주 (공동 주인)</td></tr>
+              <tr><th scope="row">내 예금에 비유하면</th><td>예금도 이쪽입니다. 내가 은행에 빌려주고 이자를 받는 구조예요.</td><td>주식 투자가 이쪽입니다. 원금이 보장되지 않는 대신 더 큰 이익을 기대할 수 있어요.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <ul class="glossary"></ul>
+    </section>
+
+    <!-- 4. 주식을 발행하는 이유 -->
+    <section class="slide" aria-label="회사가 주식을 발행하는 이유와 장단점" data-anim="donut">
+      <div class="slide-body">
+        <p class="kicker">03 · 주식을 발행하는 이유</p>
+        <h2>A가 B안(투자 받기)을 고르면 무슨 일이 생길까?</h2>
+        <p class="intro">투자자에게 2,000만 원을 받고 새 주식 2,000주를 줍니다. 전체 주식은 5,000주가 됩니다.</p>
+
+        <div class="dilute rv" style="--d:1">
+          <div>
+            <div class="donut" data-to="100"><b>100%</b></div>
+            <p class="donut-cap">투자 전 · A 3,000주</p>
+          </div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div>
+            <div class="donut" data-to="60"><b>60%</b></div>
+            <p class="donut-cap">투자 후 · 전체 5,000주</p>
+          </div>
+        </div>
+        <div class="legend rv" style="--d:1; margin:-16px 0 24px"><span><i style="background:var(--steel)"></i>A의 <span class="t" data-t="stake">지분</span></span><span><i style="background:var(--bronze)"></i>새 투자자의 지분</span></div>
+
+        <div class="cols cols-3">
+          <div class="box rv" style="--d:2">
+            <h3>왜 주식을 발행할까?</h3>
+            <ul>
+              <li>빌리기 힘든 큰돈을 모을 수 있습니다.</li>
+              <li>갚을 필요도, 이자도 없어 회사가 버틸 힘이 생깁니다.</li>
+              <li>회사가 더 크면 <span class="t" data-t="ipo">상장</span>해서 수많은 사람에게 주식을 팔 수 있습니다.</li>
+            </ul>
+          </div>
+          <div class="box pro rv" style="--d:3">
+            <h3>장점</h3>
+            <ul>
+              <li>이자 부담·상환 부담이 없습니다.</li>
+              <li>사업이 실패해도 빚처럼 갚을 필요가 없습니다.</li>
+              <li>투자자의 경험과 인맥도 함께 얻을 수 있습니다.</li>
+            </ul>
+          </div>
+          <div class="box con rv" style="--d:4">
+            <h3>단점</h3>
+            <ul>
+              <li>A의 몫이 100% → 60%로 줄어듭니다. (<span class="t" data-t="dilution">지분 희석</span>)</li>
+              <li>지분이 계속 줄면 <span class="t" data-t="control">경영권</span>을 잃을 수 있습니다.</li>
+              <li>앞으로 번 이익을 주주들과 나눠야 합니다.</li>
+              <li>상장하면 회사 정보를 꾸준히 <span class="t" data-t="disclose">공시</span>해야 합니다.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <ul class="glossary"></ul>
+    </section>
+
+    <!-- 5. 주주가치 제고 -->
+    <section class="slide" aria-label="주주가치 제고를 위한 방안">
+      <div class="slide-body">
+        <p class="kicker">04 · 주주가치 제고</p>
+        <h2>주주의 주식 가치를 높이는 방법</h2>
+        <p class="intro"><span class="t" data-t="valueup">주주가치 제고</span>란 회사가 주주가 가진 주식의 가치를 높이려고 노력하는 것입니다. 회사가 번 돈을 어디에 쓰는지가 핵심입니다.</p>
+
+        <div class="flow rv" style="--d:1">
+          <div class="flow-src">회사가 번 돈<small><span class="t" data-t="netincome">순이익</span></small></div>
+          <div class="flow-out">
+            <div class="flow-line"><span class="bar" style="--w:min(46%,260px); background:var(--steel)"></span>사업에 다시 투자 → 더 많이 벌기</div>
+            <div class="flow-line"><span class="bar" style="--w:min(30%,170px); background:var(--green)"></span>배당금으로 나눠 주기</div>
+            <div class="flow-line"><span class="bar" style="--w:min(22%,125px); background:var(--bronze)"></span>자사주를 사서 없애기</div>
+          </div>
+        </div>
+
+        <div class="cols cols-4 ways" style="margin-top:20px">
+          <div class="box rv" style="--d:2"><span class="no">1</span><h3>돈을 잘 벌기</h3><p>가장 기본입니다. 이익이 꾸준히 늘면 주식의 가치도 오릅니다.</p></div>
+          <div class="box hl rv" style="--d:3"><span class="no">2</span><h3>배당금 지급</h3><p>번 돈의 일부를 주주에게 현금으로 나눠 줍니다.</p></div>
+          <div class="box hl rv" style="--d:4"><span class="no">3</span><h3>자사주 매입·소각</h3><p>회사가 자기 주식을 사서 없애 1주의 가치를 키웁니다.</p></div>
+          <div class="box rv" style="--d:5"><span class="no">4</span><h3>투명한 경영</h3><p>좋은 <span class="t" data-t="governance">지배구조</span>를 갖추고, <span class="t" data-t="ir">IR</span>로 투자자와 솔직하게 소통합니다.</p></div>
+        </div>
+
+        <p class="point rv" style="--d:6">2번과 3번처럼 번 돈을 주주에게 직접 돌려주는 것을 <span class="t" data-t="return">주주환원</span>이라고 합니다. 한국에서도 2024년부터 정부가 '기업 밸류업 프로그램'으로 이런 노력을 권하고 있습니다.</p>
+      </div>
+      <ul class="glossary"></ul>
+    </section>
+
+    <!-- 6. 배당금 -->
+    <section class="slide" aria-label="배당금 지급의 이유와 장단점" data-anim="count">
+      <div class="slide-body">
+        <p class="kicker">05 · 주주환원 ① 배당금</p>
+        <h2>번 돈을 현금으로 나눠 주는 배당금</h2>
+        <p class="intro">회사가 크게 성장해 상장했다고 해 볼게요. 내가 이 회사 주식 50주를 갖고 있다면?</p>
+
+        <div class="divflow">
+          <div class="df rv" style="--d:1">
+            <p class="lb">올해 순이익</p>
+            <span class="big-num"><span data-count="100">0</span>억 원</span>
+            <p class="sm">1년 동안 최종적으로 남긴 돈</p>
+          </div>
+          <div class="df rv" style="--d:2">
+            <p class="lb">배당으로 나눌 돈</p>
+            <span class="big-num"><span data-count="40">0</span>억 원</span>
+            <p class="sm"><span class="t" data-t="payout">배당성향</span> 40% · 나머지 60억은 재투자</p>
+            <div class="split" aria-hidden="true"><span style="--w:40%; background:var(--green)"></span></div>
+          </div>
+          <div class="df rv" style="--d:3">
+            <p class="lb">1주당 배당금</p>
+            <span class="big-num"><span data-count="400">0</span>원</span>
+            <p class="sm">40억 원 ÷ 주식 1,000만 주</p>
+          </div>
+          <div class="df me rv" style="--d:4">
+            <p class="lb">내가 받는 돈</p>
+            <span class="big-num"><span data-count="20000">0</span>원</span>
+            <p class="sm">400원 × 50주 · 세금 떼기 전</p>
+          </div>
+        </div>
+
+        <div class="cols cols-3">
+          <div class="box rv" style="--d:5">
+            <h3>왜 배당을 줄까?</h3>
+            <ul>
+              <li>주인인 주주에게 이익을 직접 나눠 줍니다.</li>
+              <li>"우리 회사는 꾸준히 돈을 번다"는 자신감을 보여 줍니다.</li>
+              <li>꾸준한 현금을 원하는 투자자를 끌어들입니다.</li>
+            </ul>
+          </div>
+          <div class="box pro rv" style="--d:6">
+            <h3>장점</h3>
+            <ul>
+              <li>주식을 팔지 않아도 현금이 들어옵니다.</li>
+              <li>주가가 오르내려도 받는 돈이라 예금 이자처럼 느껴집니다.</li>
+              <li>회사가 약속을 잘 지키는지 확인하기 쉽습니다.</li>
+            </ul>
+          </div>
+          <div class="box con rv" style="--d:7">
+            <h3>단점</h3>
+            <ul>
+              <li>받을 때마다 <span class="t" data-t="divtax">배당소득세</span>를 뗍니다.</li>
+              <li>회사가 사업에 다시 쓸 돈이 줄어듭니다.</li>
+              <li>한 번 올리면 줄이기 어렵습니다. 줄이면 실망해 주가가 떨어지기도 합니다.</li>
+              <li><span class="t" data-t="exdiv">배당락</span>일에 주가가 배당금만큼 내려가는 경향이 있습니다.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <ul class="glossary"></ul>
+    </section>
+
+    <!-- 7. 자사주 소각 -->
+    <section class="slide" aria-label="자사주 소각의 이유와 장단점" data-anim="burn">
+      <div class="slide-body">
+        <p class="kicker">05 · 주주환원 ② 자사주 소각</p>
+        <h2>주식 수를 줄여 1주의 가치를 키우는 자사주 소각</h2>
+        <p class="intro">이해하기 쉽게, 주식이 100주뿐이고 1년 순이익이 1억 원인 회사로 단순화해 볼게요. 나는 1주를 갖고 있습니다.</p>
+
+        <div class="burn-row">
+          <div class="rv" style="--d:1">
+            <p class="phase" id="burn-phase" aria-live="polite">&nbsp;</p>
+            <div class="grid100 grid-burn" id="burn-grid" aria-hidden="true"></div>
+            <div class="legend"><span><i style="background:var(--up)"></i>내 주식</span><span><i style="background:var(--bronze)"></i>회사가 사들인 주식</span></div>
+          </div>
+          <div class="stats rv" style="--d:2">
+            <div class="stat"><span>전체 주식 수</span><span class="big-num" id="s-total">100주</span></div>
+            <div class="stat"><span>내 지분 (1주)</span><span class="big-num" id="s-share">1.00%</span></div>
+            <div class="stat"><span><span class="t" data-t="eps">주당순이익</span></span><span class="big-num" id="s-eps">100만 원</span></div>
+            <p class="bs-cap" style="text-align:left">회사 순이익은 1억 원 그대로인데, 나누는 주식 수가 줄어서 1주의 몫이 약 11% 커집니다.</p>
+          </div>
+        </div>
+
+        <div class="cols cols-3">
+          <div class="box rv" style="--d:3">
+            <h3>왜 자사주를 소각할까?</h3>
+            <ul>
+              <li><span class="t" data-t="treasury">자사주</span>를 사서 <span class="t" data-t="burn">소각</span>하면 남은 1주의 몫이 커집니다.</li>
+              <li>"우리 주가는 실제 가치보다 싸다"는 신호를 줍니다.</li>
+              <li>배당과 달리 주주가 당장 세금을 내지 않습니다.</li>
+            </ul>
+          </div>
+          <div class="box pro rv" style="--d:4">
+            <h3>장점</h3>
+            <ul>
+              <li>주식 수가 영구히 줄어 효과가 오래갑니다.</li>
+              <li>주가 상승으로 이어지기 쉽습니다.</li>
+              <li>회사가 형편에 따라 규모와 시기를 조절하기 쉽습니다.</li>
+            </ul>
+          </div>
+          <div class="box con rv" style="--d:5">
+            <h3>단점</h3>
+            <ul>
+              <li>주식을 팔기 전까지는 현금이 손에 들어오지 않습니다.</li>
+              <li>비쌀 때 사면 회사 돈을 낭비하는 셈입니다.</li>
+              <li>회사에 남는 현금이 줄어 투자 여력이 약해집니다.</li>
+              <li>사기만 하고 소각하지 않으면 다시 팔 수 있어 효과가 약합니다.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <ul class="glossary"></ul>
+    </section>
+
+    <!-- 8. 배당 vs 소각 정리 -->
+    <section class="slide" aria-label="배당금과 자사주 소각 비교">
+      <div class="slide-body">
+        <p class="kicker">05 · 한눈에 비교</p>
+        <h2>배당금 vs 자사주 소각</h2>
+        <p class="intro">둘 다 회사가 번 돈을 주주에게 돌려주는 방법입니다. 돌려주는 모양만 다릅니다.</p>
+
+        <table class="cmp cmp2 rv" style="--d:1">
+          <thead>
+            <tr><th scope="col">구분</th><th scope="col">배당금</th><th scope="col">자사주 소각</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">주주가 받는 것</th><td>현금</td><td>1주의 가치 상승 (주가 상승 기대)</td></tr>
+            <tr><th scope="row">세금</th><td>받을 때 배당소득세</td><td>주식을 팔기 전까지는 없음</td></tr>
+            <tr><th scope="row">효과가 가는 사람</th><td>배당 기준일에 주식을 가진 주주</td><td>주식을 계속 들고 있는 주주</td></tr>
+            <tr><th scope="row">회사 입장</th><td>매년 비슷한 수준을 유지해야 하는 부담</td><td>상황에 맞게 규모와 시기를 조절 가능</td></tr>
+            <tr><th scope="row">잘 맞는 투자자</th><td>꾸준한 현금이 필요한 사람</td><td>오래 보유하며 가치 상승을 기대하는 사람</td></tr>
+          </tbody>
+        </table>
+
+        <div class="takeaway">
+          <div class="box rv" style="--d:3"><h3>주식 = 회사의 주인</h3><p>예금은 돈을 빌려주는 것, 주식은 회사를 함께 소유하는 것입니다.</p></div>
+          <div class="box rv" style="--d:4"><h3>투자금은 갚지 않는 돈</h3><p>그래서 투자자는 원금 손실 위험을 지는 대신 이익을 나눠 받습니다.</p></div>
+          <div class="box rv" style="--d:5"><h3>돈을 어디에 쓰는지 보기</h3><p>좋은 회사는 잘 벌고, 번 돈을 주주에게 공정하게 돌려줍니다.</p></div>
+        </div>
+      </div>
+      <ul class="glossary"></ul>
+    </section>
+  </main>
+
+  <nav class="controls" aria-label="슬라이드 이동">
+    <div class="controls-inner">
+      <button type="button" class="btn btn-ghost" id="prev">← 이전</button>
+      <div class="dots" id="dots"></div>
+      <span class="counter" id="counter"></span>
+      <button type="button" class="btn btn-solid" id="next">다음 →</button>
+    </div>
+  </nav>
+
+  <script>
+    "use strict";
+
+    /* ---------- 용어 설명 (본문에 표시된 용어는 슬라이드 하단에 번호순으로 설명) ---------- */
+    const TERMS = {
+      capital:    ["자본금", "회사를 세울 때 주주들이 넣은 기본 밑천. 보통 '발행한 주식 수 × 액면가'로 계산합니다."],
+      corp:       ["법인", "법에서 사람처럼 인정해 주는 단체. 회사 이름으로 계약하고 재산을 가질 수 있습니다."],
+      par:        ["액면가", "주식을 처음 만들 때 1주에 정해 둔 금액. 시장에서 실제로 사고파는 가격(주가)과는 다릅니다."],
+      holder:     ["주주", "주식을 가진 사람. 가진 주식만큼 회사의 주인입니다."],
+      asset:      ["자산", "회사가 가진 모든 재산. 현금, 건물, 기계, 재고 등을 모두 합한 것입니다."],
+      debt:       ["부채", "남에게 빌려서 언젠가 갚아야 하는 돈. '타인자본'이라고도 합니다."],
+      equity:     ["자기자본", "주주가 넣은 돈과 회사가 벌어서 쌓아 둔 돈. 갚을 의무가 없습니다."],
+      interest:   ["이자", "돈을 빌린 대가로 빌려준 사람에게 내는 돈."],
+      vote:       ["의결권", "주주총회에서 회사의 중요한 일에 찬성·반대 투표를 할 수 있는 권리. 보통 1주에 1표입니다."],
+      creditor:   ["채권자", "돈을 빌려주고 돌려받을 권리가 있는 사람. 은행에 예금한 사람도 은행의 채권자입니다."],
+      stake:      ["지분", "회사 전체 주식 중에서 내가 가진 주식의 비율."],
+      ipo:        ["상장", "주식을 증권거래소에 등록해 누구나 사고팔 수 있게 하는 것. 처음 상장하며 주식을 공개 판매하는 것을 IPO(기업공개)라고 합니다."],
+      dilution:   ["지분 희석", "새 주식이 발행되면서 기존 주주가 가진 비율이 줄어드는 것."],
+      control:    ["경영권", "회사의 중요한 결정을 내리고 경영진을 정할 수 있는 힘. 보통 지분이 가장 많은 주주가 가집니다."],
+      disclose:   ["공시", "투자자가 알아야 할 회사의 중요한 정보를 모두에게 공개하는 것. 상장회사는 법으로 의무입니다."],
+      valueup:    ["주주가치 제고", "주주가 가진 주식의 가치를 높이는 것. '제고'는 높인다는 뜻입니다."],
+      netincome:  ["순이익", "매출에서 재료비, 인건비, 이자, 세금 등 모든 비용을 빼고 최종적으로 남은 이익."],
+      governance: ["지배구조", "회사를 누가 어떤 방식으로 결정하고 감시하는지에 관한 구조. 소액주주도 공정하게 대우받는지가 중요합니다."],
+      ir:         ["IR", "Investor Relations. 회사가 투자자에게 실적과 계획을 설명하는 활동."],
+      "return":   ["주주환원", "회사가 번 돈을 배당이나 자사주 소각 같은 방식으로 주주에게 돌려주는 것."],
+      payout:     ["배당성향", "순이익 중 배당금으로 나눠 준 비율. 순이익 100억 원 중 40억 원을 배당하면 40%입니다."],
+      divtax:     ["배당소득세", "배당금을 받을 때 내는 세금. 보통 회사가 미리 떼고 나머지를 입금해 줍니다."],
+      exdiv:      ["배당락", "그날부터 주식을 사면 이번 배당을 받을 수 없는 날. 받을 권리가 사라진 만큼 주가가 내려가는 경향이 있습니다."],
+      eps:        ["주당순이익(EPS)", "순이익 ÷ 전체 주식 수. 주식 1주가 벌어들인 이익입니다."],
+      treasury:   ["자사주", "회사가 사들여 갖고 있는 자기 회사의 주식. '자기주식'이라고도 합니다."],
+      burn:       ["소각", "사들인 자사주를 없애서 전체 주식 수를 줄이는 것."],
+    };
+
+    const slides = [...document.querySelectorAll(".slide")];
+
+    slides.forEach((slide) => {
+      const order = [];
+      slide.querySelectorAll(".t[data-t]").forEach((el) => {
+        const key = el.dataset.t;
+        if (!TERMS[key]) return;
+        if (!order.includes(key)) order.push(key);
+        const sup = document.createElement("sup");
+        sup.textContent = order.indexOf(key) + 1 + ")";
+        el.appendChild(sup);
+      });
+      const list = slide.querySelector(".glossary");
+      if (!list) return;
+      if (!order.length) { list.remove(); return; }
+      list.setAttribute("aria-label", "용어 설명");
+      list.innerHTML = order.map((key, i) =>
+        `<li><span class="n">${i + 1})</span><span><b>${TERMS[key][0]}</b>: ${TERMS[key][1]}</span></li>`
+      ).join("");
+    });
+
+    /* ---------- 슬라이드 이동 ---------- */
+    const dots = document.getElementById("dots");
+    const prevBtn = document.getElementById("prev");
+    const nextBtn = document.getElementById("next");
+    const counter = document.getElementById("counter");
+    const bar = document.getElementById("bar");
+    let current = -1;
+    let timers = [];
+
+    slides.forEach((s, i) => {
+      const d = document.createElement("button");
+      d.type = "button";
+      d.className = "dot";
+      d.setAttribute("aria-label", `${i + 1}번 슬라이드: ${s.getAttribute("aria-label")}`);
+      d.addEventListener("click", () => go(i));
+      dots.appendChild(d);
+    });
+
+    function go(i) {
+      if (i < 0 || i >= slides.length || i === current) return;
+      const back = i < current;
+      timers.forEach(clearTimeout);
+      timers = [];
+      slides.forEach((s, k) => s.classList.toggle("active", k === i));
+      slides[i].classList.toggle("back", back);
+      [...dots.children].forEach((d, k) => d.classList.toggle("on", k === i));
+      prevBtn.disabled = i === 0;
+      nextBtn.disabled = i === slides.length - 1;
+      counter.textContent = `${i + 1} / ${slides.length}`;
+      bar.style.width = ((i + 1) / slides.length) * 100 + "%";
+      current = i;
+      window.scrollTo({ top: 0 });
+      runAnim(slides[i]);
+    }
+
+    prevBtn.addEventListener("click", () => go(current - 1));
+    nextBtn.addEventListener("click", () => go(current + 1));
+    document.querySelectorAll("[data-go]").forEach((b) =>
+      b.addEventListener("click", () => go(Number(b.dataset.go)))
+    );
+
+    document.addEventListener("keydown", (e) => {
+      if (e.target.closest("input, textarea")) return;
+      if (e.key === "ArrowRight" || e.key === "PageDown") go(current + 1);
+      if (e.key === "ArrowLeft" || e.key === "PageUp") go(current - 1);
+    });
+
+    let touchX = null;
+    document.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+    document.addEventListener("touchend", (e) => {
+      if (touchX === null) return;
+      const dx = e.changedTouches[0].clientX - touchX;
+      if (Math.abs(dx) > 60) go(current + (dx < 0 ? 1 : -1));
+      touchX = null;
+    });
+
+    /* ---------- 대출 vs 투자: 재산 구성 막대 전환 ---------- */
+    const BS = {
+      loan:   { debt: 2, eq: 3, eqText: "주주의 돈 3,000만 원", note: "대출을 받으면 재산은 늘지만, 갚아야 할 빚도 함께 늘어납니다." },
+      invest: { debt: 0, eq: 5, eqText: "주주의 돈 5,000만 원", note: "투자를 받으면 빚 없이 재산이 늘어납니다. 대신 새 주주가 생깁니다." },
+    };
+    document.querySelectorAll("[data-bs]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const v = BS[btn.dataset.bs];
+        document.querySelectorAll("[data-bs]").forEach((b) => b.classList.toggle("on", b === btn));
+        document.getElementById("bs-debt").style.flexGrow = v.debt;
+        document.getElementById("bs-eq").style.flexGrow = v.eq;
+        document.getElementById("bs-eq").textContent = v.eqText;
+        document.getElementById("bs-note").textContent = v.note;
+      });
+    });
+
+    /* ---------- 슬라이드별 움직임 ---------- */
+    const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+    const fmt = (n) => Math.round(n).toLocaleString("ko-KR");
+
+    function makeGrid(el, n) {
+      if (!el.children.length) el.innerHTML = "<i></i>".repeat(n);
+      return [...el.children];
+    }
+
+    function runAnim(slide) {
+      const type = slide.dataset.anim;
+
+      if (type === "own") {
+        const cells = makeGrid(document.getElementById("own-grid"), 100);
+        cells.forEach((c) => (c.className = ""));
+        cells.forEach((c, i) => later(() => c.classList.add("a"), 900 + i * 12));
+      }
+
+      if (type === "donut") {
+        slide.querySelectorAll(".donut").forEach((d) => {
+          d.style.transition = "none";
+          d.style.setProperty("--p", 100);
+          d.offsetWidth;
+          d.style.transition = "";
+          later(() => d.style.setProperty("--p", d.dataset.to), 500);
+        });
+      }
+
+      if (type === "count") {
+        slide.querySelectorAll("[data-count]").forEach((el, k) => {
+          const to = Number(el.dataset.count);
+          el.textContent = "0";
+          const start = 400 + k * 180;
+          const dur = 900;
+          later(() => {
+            let t0 = null;
+            const tick = (now) => {
+              if (t0 === null) t0 = now;
+              const p = Math.min(Math.max((now - t0) / dur, 0), 1);
+              el.textContent = fmt(to * (1 - Math.pow(1 - p, 3)));
+              if (p < 1 && slide.classList.contains("active")) requestAnimationFrame(tick);
+              else el.textContent = fmt(to);
+            };
+            requestAnimationFrame(tick);
+          }, start);
+          later(() => { el.textContent = fmt(to); }, start + dur + 100);
+        });
+      }
+
+      if (type === "burn") {
+        const cells = makeGrid(document.getElementById("burn-grid"), 100);
+        const phase = document.getElementById("burn-phase");
+        const total = document.getElementById("s-total");
+        const share = document.getElementById("s-share");
+        const eps = document.getElementById("s-eps");
+        const bought = [91, 92, 93, 94, 95, 96, 97, 98, 99, 90];
+
+        cells.forEach((c) => (c.className = ""));
+        cells[0].classList.add("me");
+        [total, share, eps].forEach((el) => el.classList.remove("upv"));
+        total.textContent = "100주";
+        share.textContent = "1.00%";
+        eps.textContent = "100만 원";
+        phase.textContent = "① 전체 100주 중 내 주식은 1주";
+
+        later(() => {
+          phase.textContent = "② 회사가 시장에서 자기 주식 10주를 사들임 (자사주 매입)";
+          bought.forEach((n, k) => later(() => cells[n].classList.add("buy"), k * 90));
+        }, 1600);
+
+        later(() => {
+          phase.textContent = "③ 사들인 10주를 없앰 (소각) → 전체 90주";
+          bought.forEach((n) => cells[n].classList.add("gone"));
+          total.textContent = "90주";
+          share.textContent = "1.11%";
+          eps.textContent = "111만 원";
+          [total, share, eps].forEach((el) => el.classList.add("upv"));
+        }, 3600);
+      }
+    }
+
+    go(0);
+  </script>
+</body>
+</html>
