@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KEEM Inv - 자산배분 시뮬레이션</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="KEEM_mark.png">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --green: #2f8a5b;
+      --pA: #2a78d6;
+      --pB: #eb6834;
+      --pC: #1baf7a;
+      --pD: #eda100;
+    }
+
+    .wrap {
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 24px var(--gutter) 60px;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: clamp(20px, 4vw, 40px);
+      margin-bottom: 20px;
+    }
+
+    .kicker {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      color: var(--bronze);
+      margin-bottom: 10px;
+    }
+    .panel h1, .panel h2 {
+      font-size: clamp(22px, 3.4vw, 32px);
+      line-height: 1.3;
+      margin-bottom: 10px;
+      text-wrap: balance;
+    }
+    .panel h2 { font-size: clamp(19px, 2.6vw, 25px); }
+    .intro {
+      color: var(--ink-soft);
+      font-size: 16px;
+      max-width: 50em;
+      margin-bottom: 24px;
+    }
+
+    /* 스크롤하면 순서대로 나타나는 요소 */
+    .rv {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      transition-delay: calc(var(--d, 0) * 0.15s);
+    }
+    .rv.in { opacity: 1; transform: none; }
+
+    .cols { display: grid; gap: 16px; }
+    .cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .box {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 18px;
+    }
+    .box h3 { font-size: 16px; margin-bottom: 8px; color: var(--steel-deep); }
+    .box p, .box li { font-size: 14px; color: var(--ink-soft); }
+
+    .point {
+      margin-top: 22px;
+      padding: 14px 18px;
+      background: var(--bronze-soft);
+      border-left: 4px solid var(--bronze);
+      border-radius: 4px;
+      font-size: 15px;
+    }
+    .point b { color: var(--steel-deep); }
+
+    .num { font-family: var(--font-num); }
+
+    /* ---------- 요약 수치 ---------- */
+    .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .fact { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+    .fact .lab { font-size: 12.5px; color: var(--ink-soft); }
+    .fact .val { font-family: var(--font-num); font-size: 20px; font-weight: 500; color: var(--steel-deep); }
+
+    /* ---------- 포트폴리오 구성 ---------- */
+    .pf-card { border-top: 4px solid var(--c); }
+    .pf-card h3 { display: flex; align-items: center; gap: 8px; }
+    .pf-tag {
+      display: inline-grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      background: var(--c);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .mix { display: flex; height: 10px; gap: 2px; margin: 10px 0 12px; }
+    .mix span { border-radius: 2px; background: var(--c); transform-origin: left; transform: scaleX(0); transition: transform 0.8s ease; }
+    .rv.in .mix span { transform: scaleX(1); }
+    .hold { list-style: none; padding: 0; }
+    .hold li { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 3px 0; border-bottom: 1px dotted var(--line); }
+    .hold li:last-child { border-bottom: 0; }
+    .hold .w { font-family: var(--font-num); color: var(--ink); }
+
+    /* ---------- 상황 선택 ---------- */
+    .tabs {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 12px 0;
+      background: var(--surface);
+      margin-bottom: 8px;
+    }
+    .tab {
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 8px 18px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--ink-soft);
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .tab:hover { border-color: var(--steel); color: var(--steel-deep); }
+    .tab.on { background: var(--steel-deep); border-color: var(--steel-deep); color: #fff; }
+    .period {
+      font-size: 14px;
+      color: var(--ink-soft);
+      margin-bottom: 18px;
+    }
+    .period b { color: var(--steel-deep); }
+
+    .kpi { border-top: 4px solid var(--c); }
+    .kpi .name { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--steel-deep); margin-bottom: 8px; }
+    .kpi .rate { font-family: var(--font-num); font-size: 28px; font-weight: 500; line-height: 1.2; }
+    .kpi dl { margin: 10px 0 0; display: grid; grid-template-columns: minmax(0, 1fr); font-size: 12px; }
+    .kpi dd + dt { margin-top: 6px; padding-top: 6px; border-top: 1px dotted var(--line); }
+    .kpi dt { color: var(--ink-soft); white-space: nowrap; }
+    .kpi dd { margin: 0; text-align: right; white-space: nowrap; font-size: 14px; font-family: var(--font-num); color: var(--ink); }
+    .kpi .rank { font-size: 12px; font-weight: 700; color: var(--bronze); margin-left: auto; }
+    .pos { color: var(--up); }
+    .neg { color: var(--down); }
+
+    .chart-box { position: relative; height: 360px; }
+    .chart-box.sm { height: 280px; }
+    .chart-title { font-size: 15px; font-weight: 700; color: var(--steel-deep); margin-bottom: 2px; }
+    .chart-sub { font-size: 13px; color: var(--ink-soft); margin-bottom: 12px; }
+
+    /* ---------- 표 ---------- */
+    .table-wrap { overflow-x: auto; }
+    table.grid { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; }
+    table.grid th, table.grid td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+    table.grid th:first-child, table.grid td:first-child { text-align: left; }
+    table.grid thead th { background: var(--steel-deep); color: #fff; font-weight: 500; }
+    table.grid td { font-family: var(--font-num); }
+    table.grid td:first-child { font-family: var(--font-body); font-weight: 700; color: var(--steel-deep); }
+    table.grid td.best { background: var(--bronze-soft); font-weight: 500; }
+
+    .method li { font-size: 14px; color: var(--ink-soft); }
+    .method li + li { margin-top: 6px; }
+    .method b { color: var(--ink); font-weight: 500; }
+
+    /* ---------- 용어 표시와 하단 용어 설명 ---------- */
+    .t { font-weight: 700; color: var(--steel-deep); }
+    .t sup { font-family: var(--font-num); font-size: 10px; font-weight: 500; color: var(--bronze); margin-left: 1px; }
+    .glossary {
+      margin-top: 28px;
+      padding: 14px 0 0;
+      border-top: 1px dashed var(--line);
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 28px;
+    }
+    .glossary li { display: flex; gap: 6px; }
+    .glossary .n { font-family: var(--font-num); color: var(--bronze); flex: 0 0 auto; }
+    .glossary b { color: var(--ink); font-weight: 500; }
+
+    @media (max-width: 860px) {
+      .cols-4, .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .cols-2 { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .cols-4, .facts, .glossary { grid-template-columns: minmax(0, 1fr); }
+      .chart-box { height: 300px; }
+      .tab { flex: 1; padding: 8px 6px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .rv, .mix span { transition: none; opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html" aria-label="KEEM 홈">
+        <span class="brand-mark"><img src="KEEM_mark.png" alt="KEEM"></span>
+        <span class="brand-sub">Inv</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- 1. 개요 -->
+    <section class="panel">
+      <p class="kicker rv">ASSET ALLOCATION SIMULATION</p>
+      <h1 class="rv" style="--d:1">4개 포트폴리오, 10년 <span class="t" data-t="적립식">적립식</span> 투자 시뮬레이션</h1>
+      <p class="intro rv" style="--d:2">2026년 10월부터 10년 동안 매월 같은 금액을 넣었을 때, 어떤 포트폴리오가 손실을 덜 보고 어떤 포트폴리오가 더 많이 벌었는지 지난 30년(1996~2025년)의 실제 연간 수익률로 비교합니다.</p>
+      <div class="facts rv" style="--d:3">
+        <div class="fact"><div class="lab">투자 기간</div><div class="val">2026.10~2036.09</div></div>
+        <div class="fact"><div class="lab">월 투자금</div><div class="val">3백만원</div></div>
+        <div class="fact"><div class="lab">총 투자원금 (120회)</div><div class="val">3억 6,000만원</div></div>
+        <div class="fact"><div class="lab">검토한 10년 구간</div><div class="val" id="winCount">21개</div></div>
+      </div>
+    </section>
+
+    <!-- 2. 포트폴리오 구성 -->
+    <section class="panel">
+      <p class="kicker rv">PORTFOLIOS</p>
+      <h2 class="rv" style="--d:1">포트폴리오 구성</h2>
+      <p class="intro rv" style="--d:2">막대는 종목별 투자비중입니다. 매년 한 번 처음 비중으로 되돌리는 <span class="t" data-t="리밸런싱">리밸런싱</span>을 가정했습니다.</p>
+      <div class="cols cols-4" id="pfCards"></div>
+    </section>
+
+    <!-- 3. 상황별 결과 -->
+    <section class="panel" id="result">
+      <p class="kicker rv">SCENARIO RESULT</p>
+      <h2 class="rv" style="--d:1">상황별 10년 뒤 손익 예측</h2>
+      <p class="intro rv" style="--d:2">상황을 고르면 모든 수치와 그래프가 그 상황으로 바뀝니다.</p>
+
+      <div class="tabs" role="tablist" aria-label="시뮬레이션 상황">
+        <button type="button" class="tab on" data-sc="best" role="tab" aria-selected="true">Best</button>
+        <button type="button" class="tab" data-sc="normal" role="tab" aria-selected="false">Normal</button>
+        <button type="button" class="tab" data-sc="worst" role="tab" aria-selected="false">Worst</button>
+        <button type="button" class="tab" data-sc="mixed" role="tab" aria-selected="false">혼합</button>
+      </div>
+      <p class="period" id="period"></p>
+
+      <div class="cols cols-4" id="kpis"></div>
+
+      <div class="box rv" style="margin-top:16px">
+        <p class="chart-title">평가금액 변화 (억원)</p>
+        <p class="chart-sub">회색 점선은 지금까지 넣은 원금입니다. 선이 점선 아래로 내려가면 그 시점에 손실 상태입니다.</p>
+        <div class="chart-box"><canvas id="lineChart" aria-label="월별 평가금액 선 그래프"></canvas></div>
+      </div>
+
+      <div class="cols cols-2" style="margin-top:16px">
+        <div class="box rv">
+          <p class="chart-title">10년 뒤 손익 (만원)</p>
+          <p class="chart-sub">최종 평가금액 − 총 투자원금 3억 6,000만원</p>
+          <div class="chart-box sm"><canvas id="profitChart" aria-label="포트폴리오별 손익 막대 그래프"></canvas></div>
+        </div>
+        <div class="box rv" style="--d:1">
+          <p class="chart-title">10년 뒤 손익률 (%)</p>
+          <p class="chart-sub">손익 ÷ 총 투자원금</p>
+          <div class="chart-box sm"><canvas id="rateChart" aria-label="포트폴리오별 손익률 막대 그래프"></canvas></div>
+        </div>
+      </div>
+
+      <div class="point rv" id="scNote"></div>
+    </section>
+
+    <!-- 4. 4개 상황 한눈에 비교 -->
+    <section class="panel">
+      <p class="kicker rv">ALL SCENARIOS</p>
+      <h2 class="rv" style="--d:1">4개 상황 한눈에 비교</h2>
+      <p class="intro rv" style="--d:2">같은 포트폴리오라도 어느 10년을 만나느냐에 따라 결과가 크게 달라집니다.</p>
+
+      <div class="box rv">
+        <p class="chart-title">상황별 손익률 (%)</p>
+        <div class="chart-box sm"><canvas id="allChart" aria-label="상황별 포트폴리오 손익률 묶음 막대 그래프"></canvas></div>
+      </div>
+
+      <div class="table-wrap rv" style="margin-top:16px">
+        <table class="grid" id="allTable"></table>
+      </div>
+
+      <div class="point rv" id="verdict"></div>
+    </section>
+
+    <!-- 5. 30년 구간 분포 -->
+    <section class="panel">
+      <p class="kicker rv">HOW SCENARIOS WERE PICKED</p>
+      <h2 class="rv" style="--d:1">Best · Normal · Worst는 이렇게 골랐습니다</h2>
+      <p class="intro rv" style="--d:2">1996~2025년 30년 안에서 시작 연도를 한 해씩 옮기며 10년 구간 21개를 만들고, 구간마다 4개 포트폴리오를 똑같이 적립식으로 돌렸습니다. 4개 포트폴리오 평균 손익률이 가장 높은 구간이 Best, 가장 낮은 구간이 Worst, 한가운데(<span class="t" data-t="중앙값">중앙값</span>) 구간이 Normal입니다.</p>
+      <div class="box rv">
+        <p class="chart-title">시작 연도별 10년 적립식 손익률 (%)</p>
+        <p class="chart-sub">큰 점은 각 상황으로 뽑힌 구간입니다.</p>
+        <div class="chart-box"><canvas id="rollChart" aria-label="시작 연도별 10년 손익률 선 그래프"></canvas></div>
+      </div>
+
+      <div class="box method rv" style="margin-top:16px">
+        <h3>계산 방법과 데이터</h3>
+        <ul>
+          <li><b>투자 방식</b> - 매월 초 3백만원을 투자비중대로 나눠 사고, 1년에 한 번 리밸런싱합니다. 세금, 수수료, 운용보수는 넣지 않았습니다.</li>
+          <li><b>수익률</b> - 1996~2025년 각 자산의 연간 <span class="t" data-t="총수익률">총수익률</span>을 원화 기준으로 바꿔 썼습니다. 한 해 수익률은 12개월에 고르게 나눠 붙였습니다.</li>
+          <li><b>혼합 상황</b> - 종목마다 매년 Normal 구간의 같은 해 수익률을 보고, 플러스(+)이면 Normal 수익률을, 마이너스(-)이면 Worst 구간의 같은 해 수익률을 적용했습니다. 단, Worst 구간의 그해 수익률이 오히려 더 좋으면 Normal의 손실을 그대로 둡니다(손실은 항상 더 나쁜 쪽).</li>
+          <li><b>대용 지수</b> - 상장한 지 30년이 안 된 ETF가 많아 아래 지수로 대신했습니다.
+            <ul style="margin-top:6px">
+              <li>RISE 200 → KOSPI 지수 + 배당 연 1.5%</li>
+              <li>KODEX 미국S&amp;P500 / 미국나스닥100 / TIGER 토탈월드스탁액티브 → S&amp;P500 / 나스닥100 / MSCI ACWI 총수익률, 원화 환산(<span class="t" data-t="환노출">환노출</span>)</li>
+              <li>KODEX 미국10년국채<span class="t" data-t="선물">선물</span> → 미국 10년 국채 총수익률, 원화 환산</li>
+              <li>KODEX 국고채3년 → 국고채 3년 연간 수익률 추정치</li>
+              <li>TIGER KRX금<span class="t" data-t="현물">현물</span> → 국제 금 가격, 원화 환산</li>
+              <li>TIGER 미국MSCI<span class="t" data-t="리츠">리츠</span>(합성 <span class="t" data-t="환헤지">H</span>) → 미국 리츠 총수익률(달러 기준)</li>
+              <li>KODEX 한국부동산리츠인프라 → KOSPI 40% + 국고채 3년 60% + 연 1%</li>
+              <li>PLUS 고배당주, SOL 코리아고배당 → KOSPI 수익률의 85% + 추가 배당 연 2%</li>
+            </ul>
+          </li>
+          <li><b>한계</b> - 지난 30년 실적으로 만든 예측일 뿐이며 앞으로의 수익을 보장하지 않습니다. 연간 자료를 쓰므로 한 해 안의 출렁임은 실제보다 작게 보입니다.</li>
+        </ul>
+      </div>
+
+      <ol class="glossary" id="glossary"></ol>
+    </section>
+
+  </main>
+
+  <script>
+    /* ================= 1. 과거 30년 연간 데이터 (1996~2025) ================= */
+    const Y0 = 1996;
+    const N_YEARS = 30;
+
+    // 연말 원/달러 환율 (1995~2025, 31개)
+    const FX = [774.7, 844.2, 1415.2, 1207.8, 1145.4, 1259.7, 1326.1, 1200.4, 1197.8, 1043.8,
+                1013.0, 929.8, 936.1, 1259.5, 1164.5, 1134.8, 1151.8, 1071.1, 1055.3, 1099.2,
+                1172.0, 1207.7, 1071.4, 1115.7, 1157.8, 1086.3, 1188.8, 1264.5, 1288.0, 1472.5, 1439.0];
+
+    // 연간 수익률 (%)
+    const RAW = {
+      kospi: [-26.2, -42.2, 49.5, 82.8, -50.9, 37.5, -9.5, 29.2, 10.5, 54.0,
+              4.0, 32.3, -40.7, 49.7, 21.9, -11.0, 9.4, 0.7, -4.8, 2.4,
+              3.3, 21.8, -17.3, 7.7, 30.8, 3.6, -24.9, 18.7, -9.6, 75.6],
+      spx:   [23.0, 33.4, 28.6, 21.0, -9.1, -11.9, -22.1, 28.7, 10.9, 4.9,
+              15.8, 5.5, -37.0, 26.5, 15.1, 2.1, 16.0, 32.4, 13.7, 1.4,
+              12.0, 21.8, -4.4, 31.5, 18.4, 28.7, -18.1, 26.3, 25.0, 17.9],
+      ndx:   [42.5, 20.6, 85.3, 101.9, -36.8, -32.6, -37.6, 49.1, 10.4, 1.5,
+              6.8, 18.7, -41.9, 53.5, 19.2, 2.7, 16.8, 34.9, 17.9, 8.4,
+              5.9, 31.5, -1.0, 38.0, 47.6, 26.6, -33.0, 53.8, 24.9, 20.2],
+      ust10: [1.4, 9.9, 14.9, -8.3, 16.7, 5.6, 15.1, 0.4, 4.5, 2.9,
+              2.0, 10.2, 20.1, -11.1, 8.5, 16.0, 3.0, -9.1, 10.7, 1.3,
+              0.7, 2.8, 0.0, 9.6, 11.3, -4.4, -17.8, 3.9, -1.6, 7.5],
+      kr3:   [12.0, 5.0, 25.0, 3.0, 12.0, 9.0, 7.0, 5.5, 7.0, 2.0,
+              4.5, 4.0, 9.0, 4.0, 6.0, 4.5, 4.2, 2.5, 4.5, 3.0,
+              1.5, 1.2, 2.8, 1.8, 1.3, -0.3, -1.5, 4.0, 4.0, 2.5],
+      gold:  [-4.6, -21.4, -0.8, 0.9, -5.4, 0.8, 24.8, 19.4, 5.5, 17.9,
+              23.2, 31.9, 4.3, 25.0, 29.5, 10.1, 7.1, -28.3, -1.5, -10.4,
+              8.6, 13.1, -1.6, 18.3, 24.4, -3.6, -0.3, 13.1, 27.2, 64.0],
+      acwi:  [12.2, 14.9, 21.5, 26.8, -14.2, -16.2, -19.3, 34.0, 15.2, 10.8,
+              21.0, 11.7, -42.2, 34.6, 12.7, -7.3, 16.1, 22.8, 4.2, -2.4,
+              7.9, 24.0, -9.4, 26.6, 16.3, 18.5, -18.4, 22.2, 17.5, 22.3],
+      usreit:[35.3, 20.3, -17.5, -4.6, 26.4, 13.9, 3.8, 37.1, 31.6, 12.2,
+              35.1, -15.7, -37.7, 28.0, 28.0, 8.3, 18.1, 2.9, 28.0, 2.8,
+              8.5, 8.7, -4.0, 28.7, -5.1, 41.3, -24.9, 11.4, 4.9, 3.0]
+    };
+
+    const toKrw = (arr, extra = 0) => arr.map((r, i) => (1 + (r + extra) / 100) * (FX[i + 1] / FX[i]) - 1);
+    const pct = (arr, extra = 0) => arr.map((r) => (r + extra) / 100);
+
+    const RET = {};
+    RET.k200 = pct(RAW.kospi, 1.5);
+    RET.spx = toKrw(RAW.spx);
+    RET.ndx = toKrw(RAW.ndx, 0.7);
+    RET.ust10 = toKrw(RAW.ust10);
+    RET.kr3 = pct(RAW.kr3);
+    RET.gold = toKrw(RAW.gold);
+    RET.acwi = toKrw(RAW.acwi);
+    RET.usreit = pct(RAW.usreit);
+    RET.krreit = RET.k200.map((r, i) => 0.4 * r + 0.6 * RET.kr3[i] + 0.01);
+    RET.hidiv = RET.k200.map((r) => 0.85 * r + 0.02);
+
+    /* ================= 2. 포트폴리오 ================= */
+    const PF = [
+      { id: "A", color: "#2a78d6", items: [
+        ["K148020", "RISE 200", 10, "k200"],
+        ["K379800", "KODEX 미국S&P500", 11, "spx"],
+        ["K379810", "KODEX 미국나스닥100", 10, "ndx"],
+        ["K308620", "KODEX 미국10년국채선물", 10, "ust10"],
+        ["K114260", "KODEX 국고채3년", 10, "kr3"],
+        ["K0072R0", "TIGER KRX금현물", 10, "gold"],
+        ["K0060H0", "TIGER 토탈월드스탁액티브", 10, "acwi"],
+        ["K182480", "TIGER 미국MSCI리츠(합성 H)", 10, "usreit"],
+        ["K476800", "KODEX 한국부동산리츠인프라", 4, "krreit"],
+        ["K161510", "PLUS 고배당주", 10, "hidiv"],
+        ["K0105E0", "SOL 코리아고배당", 5, "hidiv"]
+      ]},
+      { id: "B", color: "#eb6834", items: [
+        ["K148020", "RISE 200", 20, "k200"],
+        ["K379800", "KODEX 미국S&P500", 20, "spx"],
+        ["K379810", "KODEX 미국나스닥100", 20, "ndx"],
+        ["K308620", "KODEX 미국10년국채선물", 20, "ust10"],
+        ["K0072R0", "TIGER KRX금현물", 20, "gold"]
+      ]},
+      { id: "C", color: "#1baf7a", items: [
+        ["K148020", "RISE 200", 25, "k200"],
+        ["K379800", "KODEX 미국S&P500", 25, "spx"],
+        ["K308620", "KODEX 미국10년국채선물", 25, "ust10"],
+        ["K0072R0", "TIGER KRX금현물", 25, "gold"]
+      ]},
+      { id: "D", color: "#eda100", items: [
+        ["K148020", "RISE 200", 25, "k200"],
+        ["K379810", "KODEX 미국나스닥100", 25, "ndx"],
+        ["K308620", "KODEX 미국10년국채선물", 25, "ust10"],
+        ["K0072R0", "TIGER KRX금현물", 25, "gold"]
+      ]}
+    ];
+
+    // 포트폴리오의 i번째 해(1996=0) 수익률 (연 1회 리밸런싱)
+    const pfYear = (pf, i) => pf.items.reduce((s, it) => s + (it[2] / 100) * RET[it[3]][i], 0);
+
+    /* ================= 3. 적립식 시뮬레이션 ================= */
+    const MONTHLY = 3;            // 백만원
+    const MONTHS = 120;
+    const START = { y: 2026, m: 10 };
+
+    const LABELS = Array.from({ length: MONTHS }, (_, k) => {
+      const t = START.m - 1 + k;
+      return `${START.y + Math.floor(t / 12)}.${String((t % 12) + 1).padStart(2, "0")}`;
+    });
+
+    // yearly: 10개의 연간 수익률 → 월별 평가금액
+    function simulate(yearly) {
+      let value = 0, minRate = Infinity;
+      const values = [], invested = [];
+      for (let k = 0; k < MONTHS; k++) {
+        const m = Math.pow(1 + yearly[Math.floor(k / 12)], 1 / 12) - 1;
+        value = (value + MONTHLY) * (1 + m);
+        const inv = MONTHLY * (k + 1);
+        minRate = Math.min(minRate, value / inv - 1);
+        values.push(value);
+        invested.push(inv);
+      }
+      const total = MONTHLY * MONTHS;
+      return { values, invested, final: value, profit: value - total, rate: value / total - 1, minRate, worstYear: Math.min(...yearly) };
+    }
+
+    // 1996~2025 안의 10년 구간 21개
+    const WINDOWS = [];
+    for (let s = 0; s + 10 <= N_YEARS; s++) {
+      const res = PF.map((pf) => simulate(Array.from({ length: 10 }, (_, k) => pfYear(pf, s + k))));
+      WINDOWS.push({ s, res, avg: res.reduce((a, r) => a + r.rate, 0) / res.length });
+    }
+    const sorted = [...WINDOWS].sort((a, b) => a.avg - b.avg);
+    const PICK = {
+      worst: sorted[0],
+      normal: sorted[Math.floor(sorted.length / 2)],
+      best: sorted[sorted.length - 1]
+    };
+
+    const yearsOf = (pf, w) => Array.from({ length: 10 }, (_, k) => pfYear(pf, w.s + k));
+    const SC = {
+      best:   { name: "Best",   yearly: (pf) => yearsOf(pf, PICK.best) },
+      normal: { name: "Normal", yearly: (pf) => yearsOf(pf, PICK.normal) },
+      worst:  { name: "Worst",  yearly: (pf) => yearsOf(pf, PICK.worst) },
+      mixed:  { name: "혼합",   yearly: (pf) => {
+        // 종목별로 Normal 수익률이 +이면 그대로, -이면 Worst 구간 같은 해의 더 나쁜 값
+        return Array.from({ length: 10 }, (_, k) => pf.items.reduce((sum, it) => {
+          const n = RET[it[3]][PICK.normal.s + k], w = RET[it[3]][PICK.worst.s + k];
+          return sum + (it[2] / 100) * (n >= 0 ? n : Math.min(n, w));
+        }, 0));
+      }}
+    };
+    const RESULT = {};
+    Object.keys(SC).forEach((key) => { RESULT[key] = PF.map((pf) => simulate(SC[key].yearly(pf))); });
+
+    const span = (w) => `${Y0 + w.s}~${Y0 + w.s + 9}년`;
+
+    /* ================= 4. 표시 도우미 ================= */
+    const eok = (v) => v / 100;   // 백만원 → 억원
+    // 백만원 → "7억 1,090만원" 형식
+    const fmtEok = (v, sign = false) => {
+      const man = Math.round(Math.abs(v) * 100);
+      const e = Math.floor(man / 10000), m = man % 10000;
+      const body = e ? `${e}억${m ? ` ${m.toLocaleString("ko-KR")}만원` : "원"}` : `${m.toLocaleString("ko-KR")}만원`;
+      return `${v < 0 && man ? "-" : sign && man ? "+" : ""}${body}`;
+    };
+    const fmtPct = (v, sign = true) => `${sign && v > 0 ? "+" : ""}${(v * 100).toFixed(1)}%`;
+    const cls = (v) => (v > 0 ? "pos" : v < 0 ? "neg" : "");
+
+    function countUp(el, to, fmt, dur = 900) {
+      const from = Number(el.dataset.v || 0);
+      el.dataset.v = to;
+      let t0 = null;
+      const tick = (now) => {
+        if (t0 === null) t0 = now;
+        const p = Math.min(Math.max((now - t0) / dur, 0), 1);
+        const e = 1 - Math.pow(1 - p, 3);
+        el.textContent = fmt(from + (to - from) * e);
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }
+
+    /* ================= 5. 용어 주석 ================= */
+    const TERMS = {
+      "적립식": "한 번에 목돈을 넣지 않고 정해진 날마다 같은 금액을 나눠 투자하는 방식.",
+      "리밸런싱": "오른 자산은 팔고 내린 자산은 사서 처음 정한 투자비중으로 되돌리는 것.",
+      "손익률": "번 돈(또는 잃은 돈)을 넣은 원금으로 나눈 비율.",
+      "중앙값": "값을 크기 순서로 줄 세웠을 때 한가운데 있는 값.",
+      "총수익률": "가격 변화에 배당금·이자까지 더한 수익률.",
+      "환노출": "달러 자산을 원화로 투자할 때 환율 변화가 수익률에 그대로 반영되는 것. 원화가 약해지면 이익, 강해지면 손해.",
+      "선물": "미래의 정해진 날에 정해진 가격으로 사고팔기로 미리 약속하는 거래.",
+      "현물": "약속이 아니라 지금 실제로 사고파는 실물 자산.",
+      "리츠": "여러 사람의 돈을 모아 부동산에 투자하고 임대료 등의 수익을 나눠 주는 회사나 상품.",
+      "환헤지": "(H) 표시. 환율 변화의 영향을 줄이도록 미리 환율을 고정해 둔 것."
+    };
+    const ORDER = [];
+    function markTerms(root = document) {
+      root.querySelectorAll(".t[data-t]:not([data-done])").forEach((el) => {
+        const key = el.dataset.t;
+        if (!ORDER.includes(key)) ORDER.push(key);
+        const sup = document.createElement("sup");
+        sup.textContent = ORDER.indexOf(key) + 1;
+        el.appendChild(sup);
+        el.dataset.done = "1";
+      });
+    }
+    function renderGlossary() {
+      document.getElementById("glossary").innerHTML = ORDER.map((k, i) =>
+        `<li><span class="n">${i + 1})</span><span><b>${k === "환헤지" ? "H(환헤지)" : k}</b> - ${TERMS[k]}</span></li>`).join("");
+    }
+
+    /* ================= 6. 포트폴리오 카드 ================= */
+    document.getElementById("winCount").textContent = `${WINDOWS.length}개`;
+    document.getElementById("pfCards").innerHTML = PF.map((pf, i) => `
+      <div class="box pf-card rv" style="--c:${pf.color};--d:${i}">
+        <h3><span class="pf-tag">${pf.id}</span>포트폴리오 ${pf.id} <span class="num" style="margin-left:auto;font-size:12px;color:var(--ink-soft)">${pf.items.length}종목</span></h3>
+        <div class="mix">${pf.items.map((it, j) => `<span style="flex:${it[2]};opacity:${1 - j * 0.07};transition-delay:${0.3 + j * 0.06}s" title="${it[1]} ${it[2]}%"></span>`).join("")}</div>
+        <ul class="hold">${pf.items.map((it) => `<li><span>${it[1]}</span><span class="w">${it[2].toFixed(0)}%</span></li>`).join("")}</ul>
+      </div>`).join("");
+
+    /* ================= 7. KPI 카드 ================= */
+    document.getElementById("kpis").innerHTML = PF.map((pf, i) => `
+      <div class="box kpi rv" style="--c:${pf.color};--d:${i}">
+        <div class="name"><span class="pf-tag" style="--c:${pf.color}">${pf.id}</span>포트폴리오 ${pf.id}<span class="rank" id="rank${pf.id}"></span></div>
+        <div class="rate" id="rate${pf.id}">0.0%</div>
+        <dl>
+          <dt>최종 평가금액</dt><dd id="final${pf.id}">-</dd>
+          <dt>손익</dt><dd id="profit${pf.id}">-</dd>
+          <dt>가장 나빴던 1년</dt><dd id="wy${pf.id}">-</dd>
+          <dt>기간 중 최저 <span class="t" data-t="손익률">손익률</span></dt><dd id="min${pf.id}">-</dd>
+        </dl>
+      </div>`).join("");
+
+    /* ================= 8. 그래프 ================= */
+    Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = "#4b5967";
+    const GRID = { color: "#e6eaee", drawTicks: false };
+    const AXIS = { border: { display: false }, grid: GRID, ticks: { padding: 6 } };
+
+    // 선 끝에 포트폴리오 이름을 직접 표시
+    const endLabels = {
+      id: "endLabels",
+      afterDatasetsDraw(chart, _a, opts) {
+        if (!opts || !opts.on) return;
+        const { ctx } = chart;
+        const placed = [];
+        chart.data.datasets.forEach((ds, di) => {
+          const meta = chart.getDatasetMeta(di);
+          if (!ds.endLabel || meta.hidden) return;
+          const p = meta.data[meta.data.length - 1];
+          if (!p) return;
+          let y = p.y;
+          placed.forEach((py) => { if (Math.abs(py - y) < 14) y = py + (y >= py ? 14 : -14); });
+          placed.push(y);
+          ctx.save();
+          ctx.font = "700 12px " + Chart.defaults.font.family;
+          ctx.fillStyle = "#16202b";
+          ctx.textBaseline = "middle";
+          ctx.fillText(ds.endLabel, p.x + 8, y);
+          ctx.restore();
+        });
+      }
+    };
+    Chart.register(endLabels);
+
+    const tooltip = {
+      backgroundColor: "#1b2b3a",
+      padding: 10,
+      boxPadding: 4,
+      usePointStyle: true
+    };
+
+    const lineChart = new Chart(document.getElementById("lineChart"), {
+      type: "line",
+      data: {
+        labels: LABELS,
+        datasets: [
+          ...PF.map((pf) => ({
+            label: `포트폴리오 ${pf.id}`, endLabel: pf.id, data: [], borderColor: pf.color, backgroundColor: pf.color,
+            borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBorderColor: "#fff", pointHoverBorderWidth: 2, tension: 0.25
+          })),
+          { label: "투자원금", data: [], borderColor: "#8a96a3", borderDash: [5, 4], borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, backgroundColor: "#8a96a3" }
+        ]
+      },
+      options: {
+        maintainAspectRatio: false,
+        layout: { padding: { right: 24 } },
+        interaction: { mode: "index", intersect: false },
+        animation: { duration: 900, easing: "easeOutQuart" },
+        plugins: {
+          endLabels: { on: true },
+          legend: { position: "bottom", labels: { usePointStyle: true, pointStyle: "line", boxWidth: 24 } },
+          tooltip: { ...tooltip, callbacks: { label: (c) => ` ${c.dataset.label}: ${fmtEok(c.parsed.y * 100)}` } }
+        },
+        scales: {
+          x: { ...AXIS, grid: { display: false }, ticks: { autoSkip: false, maxRotation: 0, callback(v, i) { return i % 12 === 0 ? LABELS[i].slice(0, 4) : ""; } } },
+          y: { ...AXIS, ticks: { ...AXIS.ticks, callback: (v) => `${v.toLocaleString("ko-KR", { maximumFractionDigits: 1 })}억` } }
+        }
+      }
+    });
+
+    const barOpts = (fmt) => ({
+      maintainAspectRatio: false,
+      animation: { duration: 900, easing: "easeOutQuart" },
+      plugins: {
+        legend: { display: false },
+        tooltip: { ...tooltip, callbacks: { label: (c) => ` ${fmt(c.parsed.y)}` } }
+      },
+      scales: {
+        x: { ...AXIS, grid: { display: false } },
+        y: { ...AXIS, ticks: { ...AXIS.ticks } }
+      }
+    });
+    const barDs = () => ({
+      data: [], backgroundColor: PF.map((p) => p.color), borderRadius: 4, borderSkipped: false, maxBarThickness: 56
+    });
+    const valueLabels = {
+      id: "valueLabels",
+      afterDatasetsDraw(chart, _a, opts) {
+        if (!opts || !opts.fmt) return;
+        const { ctx } = chart;
+        const meta = chart.getDatasetMeta(0);
+        meta.data.forEach((bar, i) => {
+          const v = chart.data.datasets[0].data[i];
+          ctx.save();
+          ctx.font = "500 12px " + Chart.defaults.font.family;
+          ctx.fillStyle = "#16202b";
+          ctx.textAlign = "center";
+          ctx.textBaseline = v >= 0 ? "bottom" : "top";
+          ctx.fillText(opts.fmt(v), bar.x, bar.y + (v >= 0 ? -4 : 4));
+          ctx.restore();
+        });
+      }
+    };
+    Chart.register(valueLabels);
+
+    const profitChart = new Chart(document.getElementById("profitChart"), {
+      type: "bar",
+      data: { labels: PF.map((p) => `포트폴리오 ${p.id}`), datasets: [barDs()] },
+      options: { ...barOpts(), plugins: { ...barOpts().plugins, valueLabels: { fmt: (v) => `${v > 0 ? "+" : ""}${v.toLocaleString("ko-KR")}만` }, tooltip: { ...tooltip, callbacks: { label: (c) => ` 손익 ${fmtEok(c.parsed.y / 100, true)}` } } } }
+    });
+    const rateChart = new Chart(document.getElementById("rateChart"), {
+      type: "bar",
+      data: { labels: PF.map((p) => `포트폴리오 ${p.id}`), datasets: [barDs()] },
+      options: { ...barOpts(), plugins: { ...barOpts().plugins, valueLabels: { fmt: (v) => `${v > 0 ? "+" : ""}${v.toFixed(1)}%` }, tooltip: { ...tooltip, callbacks: { label: (c) => ` 손익률 ${c.parsed.y.toFixed(1)}%` } } } }
+    });
+    // 막대 위 숫자가 잘리지 않도록 위아래 여백
+    [profitChart, rateChart].forEach((ch) => { ch.options.layout = { padding: { top: 22, bottom: 4 } }; });
+
+    /* ================= 9. 상황 전환 ================= */
+    const NOTES = {
+      best: () => `Best는 30년 중 4개 포트폴리오 평균 손익률이 가장 높았던 <b>${span(PICK.best)}</b>의 흐름이 2026년 10월부터 똑같이 반복된다고 가정한 결과입니다.`,
+      normal: () => `Normal은 21개 구간 중 평균 손익률이 한가운데였던 <b>${span(PICK.normal)}</b>의 흐름을 적용했습니다. 가장 흔하게 기대할 수 있는 결과로 보면 됩니다.`,
+      worst: () => `Worst는 평균 손익률이 가장 낮았던 <b>${span(PICK.worst)}</b>의 흐름입니다. 이 구간에서 덜 잃은 포트폴리오가 하락장에 강한 포트폴리오입니다.`,
+      mixed: () => `혼합은 종목별로 오르는 해에는 Normal(<b>${span(PICK.normal)}</b>)만큼만 오르고, 내리는 해에는 Worst(<b>${span(PICK.worst)}</b>)의 같은 해 수익률을 적용한 보수적인 가정입니다.`
+    };
+    const PERIOD = {
+      best: () => `적용 구간: <b>${span(PICK.best)}</b> 실적`,
+      normal: () => `적용 구간: <b>${span(PICK.normal)}</b> 실적`,
+      worst: () => `적용 구간: <b>${span(PICK.worst)}</b> 실적`,
+      mixed: () => `적용 구간: 플러스인 해는 <b>${span(PICK.normal)}</b>, 마이너스인 해는 <b>${span(PICK.worst)}</b> 실적`
+    };
+
+    function show(key) {
+      const res = RESULT[key];
+      document.querySelectorAll(".tab").forEach((b) => {
+        const on = b.dataset.sc === key;
+        b.classList.toggle("on", on);
+        b.setAttribute("aria-selected", on);
+      });
+      document.getElementById("period").innerHTML = PERIOD[key]();
+
+      const order = res.map((r, i) => i).sort((a, b) => res[b].rate - res[a].rate);
+      PF.forEach((pf, i) => {
+        const r = res[i];
+        const rateEl = document.getElementById("rate" + pf.id);
+        rateEl.className = "rate " + cls(r.rate);
+        countUp(rateEl, r.rate, (v) => fmtPct(v));
+        countUp(document.getElementById("final" + pf.id), r.final, (v) => fmtEok(v));
+        const pe = document.getElementById("profit" + pf.id);
+        pe.className = cls(r.profit);
+        countUp(pe, r.profit, (v) => fmtEok(v, true));
+        const we = document.getElementById("wy" + pf.id);
+        we.textContent = fmtPct(r.worstYear);
+        we.className = cls(r.worstYear);
+        const me = document.getElementById("min" + pf.id);
+        me.textContent = fmtPct(r.minRate);
+        me.className = cls(r.minRate);
+        document.getElementById("rank" + pf.id).textContent = `손익률 ${order.indexOf(i) + 1}위`;
+      });
+
+      PF.forEach((pf, i) => { lineChart.data.datasets[i].data = res[i].values.map(eok); });
+      lineChart.data.datasets[PF.length].data = res[0].invested.map(eok);
+      lineChart.update();
+
+      profitChart.data.datasets[0].data = res.map((r) => Math.round(r.profit * 100));
+      profitChart.update();
+      rateChart.data.datasets[0].data = res.map((r) => +(r.rate * 100).toFixed(1));
+      rateChart.update();
+
+      const top = PF[order[0]].id;
+      const safe = PF[res.map((r, i) => i).sort((a, b) => res[b].minRate - res[a].minRate || res[b].worstYear - res[a].worstYear)[0]].id;
+      document.getElementById("scNote").innerHTML =
+        `${NOTES[key]()}<br>이 상황에서 손익률이 가장 높은 것은 <b>포트폴리오 ${top}</b>, 10년 중 원금 대비 가장 덜 떨어졌던 것은 <b>포트폴리오 ${safe}</b>입니다.`;
+    }
+
+    document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => show(b.dataset.sc)));
+
+    /* ================= 10. 4개 상황 비교 ================= */
+    const SC_KEYS = ["best", "normal", "worst", "mixed"];
+    new Chart(document.getElementById("allChart"), {
+      type: "bar",
+      data: {
+        labels: SC_KEYS.map((k) => SC[k].name),
+        datasets: PF.map((pf, i) => ({
+          label: `포트폴리오 ${pf.id}`,
+          data: SC_KEYS.map((k) => +(RESULT[k][i].rate * 100).toFixed(1)),
+          backgroundColor: pf.color, borderRadius: 4, borderSkipped: false, maxBarThickness: 36,
+          borderColor: "#fff", borderWidth: { left: 1, right: 1 }
+        }))
+      },
+      options: {
+        maintainAspectRatio: false,
+        animation: { duration: 1100, easing: "easeOutQuart", delay: (c) => (c.type === "data" ? c.dataIndex * 150 + c.datasetIndex * 60 : 0) },
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { position: "bottom", labels: { usePointStyle: true, pointStyle: "rectRounded" } },
+          tooltip: { ...tooltip, callbacks: { label: (c) => ` ${c.dataset.label}: ${c.parsed.y > 0 ? "+" : ""}${c.parsed.y.toFixed(1)}%` } }
+        },
+        scales: {
+          x: { ...AXIS, grid: { display: false } },
+          y: { ...AXIS, ticks: { ...AXIS.ticks, callback: (v) => `${v}%` } }
+        }
+      }
+    });
+
+    (function renderTable() {
+      const head = `<thead><tr><th>포트폴리오</th>${SC_KEYS.map((k) => `<th>${SC[k].name} 손익률</th>`).join("")}<th>4개 상황 평균</th><th>가장 나쁜 결과</th><th>가장 나빴던 1년</th></tr></thead>`;
+      const rows = PF.map((pf, i) => {
+        const rates = SC_KEYS.map((k) => RESULT[k][i].rate);
+        return { pf, rates, avg: rates.reduce((a, b) => a + b, 0) / rates.length, low: Math.min(...rates), wy: Math.min(...SC_KEYS.map((k) => RESULT[k][i].worstYear)) };
+      });
+      const bestOf = (f, hi = true) => rows.reduce((b, r) => ((hi ? f(r) > f(b) : f(r) < f(b)) ? r : b)).pf.id;
+      const colBest = SC_KEYS.map((_, j) => bestOf((r) => r.rates[j]));
+      const avgBest = bestOf((r) => r.avg), lowBest = bestOf((r) => r.low), wyBest = bestOf((r) => r.wy);
+      const td = (v, on, sign = true) => `<td class="${cls(v)}${on ? " best" : ""}">${fmtPct(v, sign)}</td>`;
+      const body = rows.map((r) => `<tr><td><span class="pf-tag" style="--c:${r.pf.color};margin-right:6px">${r.pf.id}</span>포트폴리오 ${r.pf.id}</td>${
+        r.rates.map((v, j) => td(v, colBest[j] === r.pf.id)).join("")}${td(r.avg, avgBest === r.pf.id)}${td(r.low, lowBest === r.pf.id)}${td(r.wy, wyBest === r.pf.id)}</tr>`).join("");
+      document.getElementById("allTable").innerHTML = head + `<tbody>${body}</tbody>`;
+
+      document.getElementById("verdict").innerHTML =
+        `<b>손실을 덜 보는 포트폴리오:</b> 4개 상황 중 가장 나쁜 결과가 가장 양호한 것은 <b>포트폴리오 ${lowBest}</b>, 4개 상황을 통틀어 가장 나빴던 1년의 손실이 가장 작은 것은 <b>포트폴리오 ${wyBest}</b>입니다.<br>` +
+        `<b>수익률이 높은 포트폴리오:</b> 4개 상황 평균 손익률이 가장 높은 것은 <b>포트폴리오 ${avgBest}</b>입니다.<br>` +
+        `<span style="font-size:13px;color:var(--ink-soft)">표에서 색칠된 칸이 열마다 가장 좋은 값입니다. 가장 나빴던 1년은 4개 상황의 모든 해 가운데 가장 낮은 연간 수익률입니다.</span>`;
+    })();
+
+    /* ================= 11. 30년 구간 분포 ================= */
+    const rollLabels = WINDOWS.map((w) => `${Y0 + w.s}`);
+    const pickIdx = [PICK.best.s, PICK.normal.s, PICK.worst.s];
+    new Chart(document.getElementById("rollChart"), {
+      type: "line",
+      data: {
+        labels: rollLabels,
+        datasets: PF.map((pf, i) => ({
+          label: `포트폴리오 ${pf.id}`, endLabel: pf.id,
+          data: WINDOWS.map((w) => +(w.res[i].rate * 100).toFixed(1)),
+          borderColor: pf.color, backgroundColor: pf.color, borderWidth: 2, tension: 0.25,
+          pointRadius: WINDOWS.map((w) => (pickIdx.includes(w.s) ? 6 : 0)),
+          pointBorderColor: "#fff", pointBorderWidth: 2, pointHoverRadius: 6
+        }))
+      },
+      options: {
+        maintainAspectRatio: false,
+        layout: { padding: { right: 24 } },
+        interaction: { mode: "index", intersect: false },
+        animation: { duration: 1200, easing: "easeOutQuart" },
+        plugins: {
+          endLabels: { on: true },
+          legend: { position: "bottom", labels: { usePointStyle: true, pointStyle: "line", boxWidth: 24 } },
+          tooltip: { ...tooltip, callbacks: {
+            title: (items) => {
+              const s = items[0].dataIndex;
+              const tag = s === PICK.best.s ? " · Best" : s === PICK.normal.s ? " · Normal" : s === PICK.worst.s ? " · Worst" : "";
+              return `${Y0 + s}~${Y0 + s + 9}년${tag}`;
+            },
+            label: (c) => ` ${c.dataset.label}: ${c.parsed.y > 0 ? "+" : ""}${c.parsed.y.toFixed(1)}%`
+          }}
+        },
+        scales: {
+          x: { ...AXIS, grid: { display: false }, title: { display: true, text: "10년 구간의 시작 연도" } },
+          y: { ...AXIS, ticks: { ...AXIS.ticks, callback: (v) => `${v}%` } }
+        }
+      }
+    });
+
+    /* ================= 12. 시작 ================= */
+    markTerms();
+    renderGlossary();
+    show("best");
+
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+    }, { threshold: 0.12 });
+    document.querySelectorAll(".rv").forEach((el) => io.observe(el));
+  </script>
+</body>
+</html>
